@@ -25,7 +25,7 @@ class StrokeDetector {
 
     // 30-second sliding window of stroke timestamps (ms)
     const WINDOW_MS = 30000;
-    var strokeTimes = new [60]; // max ~60 strokes in 30s (at 120spm extreme)
+    var strokeTimes = new [20]; // max ~18 strokes in 30s (at 35spm high rate)
     var strokeTimesIdx = 0;
     var strokeTimesCount = 0;
 
@@ -46,9 +46,10 @@ class StrokeDetector {
     var catchThreshold = 80.0; // milliG linear accel magnitude
 
     // Fixed constants
+    // Typical: 20 spm (3s/stroke), high: 35 spm (1.7s), absolute max: 60 spm (1s)
     const EMA_ALPHA = 0.15;
-    const MIN_STROKE_INTERVAL = 1200; // ms, max ~50 spm
-    const MAX_STROKE_INTERVAL = 6000; // ms, min ~10 spm
+    const MIN_STROKE_INTERVAL = 1700; // ms, max 35 spm (high rate)
+    const MAX_STROKE_INTERVAL = 6000; // ms, min 10 spm (very slow paddling)
 
     // 1-second statistics for FIT recording
     // Raw axes (mean per window for compact recording)
