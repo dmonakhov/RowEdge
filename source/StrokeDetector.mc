@@ -1,6 +1,7 @@
 using Toybox.Sensor;
 using Toybox.Math;
 using Toybox.System;
+using Toybox.Application;
 
 // Detects rowing strokes from accelerometer data.
 // Algorithm: smoothed peak detection on forward acceleration axis.
@@ -26,20 +27,27 @@ class StrokeDetector {
     var intervalCount = 0;
 
     // Signal processing state
-    var emaValue = 0.0;        // exponential moving average of forward accel
-    var prevEma = 0.0;         // previous EMA value (for slope detection)
-    var wasNegative = false;   // was signal below threshold on prev sample?
+    var emaValue = 0.0;
+    var prevEma = 0.0;
+    var wasNegative = false;
     var running = false;
 
-    // Tuning constants
-    const EMA_ALPHA = 0.15;           // smoothing factor (lower = more smooth)
+    // Tuning: adjustable at runtime via menu
+    var catchThreshold = -80.0; // milliG, minimum dip to count as stroke
+
+    // Fixed constants
+    const EMA_ALPHA = 0.15;
     const MIN_STROKE_INTERVAL = 1200; // ms, max ~50 spm
     const MAX_STROKE_INTERVAL = 6000; // ms, min ~10 spm
-    const CATCH_THRESHOLD = -80.0;    // milliG, minimum dip to count as stroke
 
     function initialize() {
         for (var i = 0; i < intervalBuf.size(); i++) {
             intervalBuf[i] = 0;
+        }
+        // Load persisted threshold
+        var saved = Application.Storage.getValue("catchThreshold");
+        if (saved != null) {
+            catchThreshold = saved.toFloat();
         }
     }
 
@@ -89,44 +97,35 @@ class StrokeDetector {
         var accelData = sensorData.accelerometerData;
         if (accelData == null) { return; }
 
-        // Use Y axis as forward direction (along boat length)
-        // Edge mounted horizontally on stem: Y = forward/backward
-        // Adjust if mounting orientation differs
         var yData = accelData.y;
         if (yData == null) { return; }
 
-        var now = System.getTimer(); // ms monotonic clock
+        var now = System.getTimer();
 
         for (var i = 0; i < yData.size(); i++) {
             var sample = yData[i].toFloat();
-            var sampleTime = now;
 
             // Exponential moving average
             emaValue = EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * emaValue;
 
-            // Detect negative-to-positive zero crossing after a dip below threshold
-            // This corresponds to the "catch" point
-            var isNegative = (emaValue < CATCH_THRESHOLD);
+            // Detect negative-to-positive crossing after dip below threshold
+            var isNegative = (emaValue < catchThreshold);
 
             if (wasNegative && !isNegative) {
-                // Rising edge: potential stroke
-                var interval = sampleTime - lastStrokeTime;
+                var interval = now - lastStrokeTime;
 
                 if (lastStrokeTime > 0 &&
                     interval >= MIN_STROKE_INTERVAL &&
                     interval <= MAX_STROKE_INTERVAL) {
-                    // Valid stroke detected
                     strokeCount++;
                     recordInterval(interval);
                     strokeRate = computeStrokeRate();
-                    lastStrokeTime = sampleTime;
+                    lastStrokeTime = now;
                 } else if (lastStrokeTime == 0 ||
                            interval > MAX_STROKE_INTERVAL) {
-                    // First stroke or gap too long -- restart
                     strokeCount++;
-                    lastStrokeTime = sampleTime;
+                    lastStrokeTime = now;
                 }
-                // If interval < MIN_STROKE_INTERVAL, ignore (noise)
             }
 
             wasNegative = isNegative;
@@ -148,8 +147,8 @@ class StrokeDetector {
         for (var i = 0; i < intervalCount; i++) {
             sum += intervalBuf[i];
         }
-        var avgInterval = sum.toFloat() / intervalCount; // ms
+        var avgInterval = sum.toFloat() / intervalCount;
         if (avgInterval <= 0) { return 0.0; }
-        return 60000.0 / avgInterval; // convert to strokes per minute
+        return 60000.0 / avgInterval;
     }
 }

@@ -1,10 +1,13 @@
 using Toybox.WatchUi;
 using Toybox.System;
+using Toybox.Application;
 
-// Edge 540 button mapping:
+// Edge 540 buttons:
 //   ENTER (select) = start/stop activity
-//   BACK = lap (during recording) or exit (when stopped)
-//   UP/DOWN = page scroll (future)
+//   BACK  = lap (during recording) or exit (when idle)
+//   UP    = previous page
+//   DOWN  = next page
+//   MENU  = open settings menu (threshold adjust)
 
 class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
 
@@ -20,12 +23,10 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         var session = app.rowingSession;
 
         if (!session.isRecording()) {
-            // Start recording
             session.start();
             app.strokeDetector.start();
             view.setState(RowingView.STATE_RECORDING);
         } else {
-            // Stop recording -- show save confirmation
             app.strokeDetector.stop();
             session.stop();
             view.setState(RowingView.STATE_STOPPED);
@@ -44,14 +45,33 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         var session = app.rowingSession;
 
         if (session.isRecording()) {
-            // Create a lap
             session.addLap();
             view.onLap();
             WatchUi.requestUpdate();
             return true;
         }
-        // Not recording -- exit app
         return false;
+    }
+
+    function onNextPage() {
+        view.nextPage();
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function onPreviousPage() {
+        view.prevPage();
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function onMenu() {
+        WatchUi.pushView(
+            new ThresholdView(),
+            new ThresholdDelegate(),
+            WatchUi.SLIDE_UP
+        );
+        return true;
     }
 }
 
@@ -71,12 +91,94 @@ class SaveConfirmDelegate extends WatchUi.ConfirmationDelegate {
         } else {
             app.rowingSession.discard();
         }
-        // Reset for next session
         app.rowingSession = new RowingSession();
         app.strokeDetector.reset();
         view.reset();
         view.setState(RowingView.STATE_IDLE);
         WatchUi.requestUpdate();
+        return true;
+    }
+}
+
+//
+// In-app threshold adjustment screen
+// UP/DOWN changes value, BACK exits
+//
+
+class ThresholdView extends WatchUi.View {
+
+    function initialize() {
+        View.initialize();
+    }
+
+    function onUpdate(dc) {
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+        dc.clear();
+
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var app = Application.getApp();
+        var thr = app.strokeDetector.catchThreshold;
+
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, 10, Graphics.FONT_SMALL, "Stroke Threshold",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        dc.drawText(w / 2, h / 2 - 30, Graphics.FONT_NUMBER_MILD,
+                    thr.format("%.0f"),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, h / 2 + 30, Graphics.FONT_XTINY,
+                    "milliG (negative)",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        dc.drawText(w / 2, h / 2 + 55, Graphics.FONT_XTINY,
+                    "UP/DOWN: +/- 10",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        dc.drawText(w / 2, h / 2 + 75, Graphics.FONT_XTINY,
+                    "BACK: done",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Show sensitivity guide
+        dc.drawText(w / 2, h - 40, Graphics.FONT_XTINY,
+                    "Less neg = more sensitive",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
+}
+
+class ThresholdDelegate extends WatchUi.BehaviorDelegate {
+
+    function initialize() {
+        BehaviorDelegate.initialize();
+    }
+
+    function onNextPage() {
+        adjustThreshold(-10); // more negative = less sensitive
+        return true;
+    }
+
+    function onPreviousPage() {
+        adjustThreshold(10); // less negative = more sensitive
+        return true;
+    }
+
+    function adjustThreshold(delta) {
+        var app = Application.getApp();
+        var detector = app.strokeDetector;
+        var newVal = detector.catchThreshold + delta;
+        // Clamp to reasonable range: -300 to -10
+        if (newVal > -10) { newVal = -10; }
+        if (newVal < -300) { newVal = -300; }
+        detector.catchThreshold = newVal;
+        // Persist to storage
+        Application.Storage.setValue("catchThreshold", newVal.toNumber());
+        WatchUi.requestUpdate();
+    }
+
+    function onBack() {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }
 }
