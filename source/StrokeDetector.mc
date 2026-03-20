@@ -23,10 +23,11 @@ class StrokeDetector {
     var strokeRate = 0.0;      // strokes per minute
     var lastStrokeTime = 0;    // ms timestamp of last detected stroke
 
-    // Smoothing buffer for inter-stroke intervals
-    var intervalBuf = new [8];
-    var intervalIdx = 0;
-    var intervalCount = 0;
+    // 30-second sliding window of stroke timestamps (ms)
+    const WINDOW_MS = 30000;
+    var strokeTimes = new [60]; // max ~60 strokes in 30s (at 120spm extreme)
+    var strokeTimesIdx = 0;
+    var strokeTimesCount = 0;
 
     // Gravity estimation (slow EMA per axis, converges to gravity vector)
     var gravX = 0.0;
@@ -62,8 +63,8 @@ class StrokeDetector {
     var sampleCount = 0;
 
     function initialize() {
-        for (var i = 0; i < intervalBuf.size(); i++) {
-            intervalBuf[i] = 0;
+        for (var i = 0; i < strokeTimes.size(); i++) {
+            strokeTimes[i] = 0;
         }
         var saved = Application.Storage.getValue("catchThreshold");
         if (saved != null) {
@@ -108,8 +109,8 @@ class StrokeDetector {
         strokeCount = 0;
         strokeRate = 0.0;
         lastStrokeTime = 0;
-        intervalIdx = 0;
-        intervalCount = 0;
+        strokeTimesIdx = 0;
+        strokeTimesCount = 0;
         emaValue = 0.0;
         prevEma = 0.0;
         wasPeak = false;
@@ -181,12 +182,12 @@ class StrokeDetector {
                     interval >= MIN_STROKE_INTERVAL &&
                     interval <= MAX_STROKE_INTERVAL) {
                     strokeCount++;
-                    recordInterval(interval);
-                    strokeRate = computeStrokeRate();
+                    recordStrokeTime(now);
                     lastStrokeTime = now;
                 } else if (lastStrokeTime == 0 ||
                            interval > MAX_STROKE_INTERVAL) {
                     strokeCount++;
+                    recordStrokeTime(now);
                     lastStrokeTime = now;
                 }
             }
@@ -223,22 +224,28 @@ class StrokeDetector {
         return stats;
     }
 
-    function recordInterval(interval) {
-        intervalBuf[intervalIdx] = interval;
-        intervalIdx = (intervalIdx + 1) % intervalBuf.size();
-        if (intervalCount < intervalBuf.size()) {
-            intervalCount++;
+    function recordStrokeTime(ts) {
+        strokeTimes[strokeTimesIdx] = ts;
+        strokeTimesIdx = (strokeTimesIdx + 1) % strokeTimes.size();
+        if (strokeTimesCount < strokeTimes.size()) {
+            strokeTimesCount++;
         }
+        // Recompute rate from 30s window
+        strokeRate = computeStrokeRate(ts);
     }
 
-    function computeStrokeRate() {
-        if (intervalCount == 0) { return 0.0; }
-        var sum = 0;
-        for (var i = 0; i < intervalCount; i++) {
-            sum += intervalBuf[i];
+    // Count strokes within last 30 seconds, normalize to per-minute
+    function computeStrokeRate(now) {
+        if (strokeTimesCount == 0) { return 0.0; }
+        var cutoff = now - WINDOW_MS;
+        var count = 0;
+        for (var i = 0; i < strokeTimesCount; i++) {
+            if (strokeTimes[i] >= cutoff) {
+                count++;
+            }
         }
-        var avgInterval = sum.toFloat() / intervalCount;
-        if (avgInterval <= 0) { return 0.0; }
-        return 60000.0 / avgInterval;
+        if (count < 2) { return 0.0; }
+        // strokes in 30s -> strokes per minute
+        return count * 60000.0 / WINDOW_MS;
     }
 }

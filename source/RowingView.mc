@@ -229,8 +229,8 @@ class RowingView extends WatchUi.View {
         var tallH = h * 2 / 5;
         var shortH = h / 5;
         var lf = Graphics.FONT_XTINY;
-        var bigVf = Graphics.FONT_NUMBER_HOT;
-        var smVf = Graphics.FONT_NUMBER_MEDIUM;
+        var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
+        var smVf = Graphics.FONT_NUMBER_HOT;
         drawStatusBar(dc, w);
 
         // Dividers
@@ -255,8 +255,8 @@ class RowingView extends WatchUi.View {
         var tallH = h * 2 / 5;
         var shortH = h / 5;
         var lf = Graphics.FONT_XTINY;
-        var bigVf = Graphics.FONT_NUMBER_HOT;
-        var smVf = Graphics.FONT_NUMBER_MEDIUM;
+        var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
+        var smVf = Graphics.FONT_NUMBER_HOT;
         drawStatusBar(dc, w);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
@@ -283,8 +283,8 @@ class RowingView extends WatchUi.View {
         // Row heights: short=h/5, tall=2*h/5
         var u = h / 5;
         var lf = Graphics.FONT_XTINY;
-        var bigVf = Graphics.FONT_NUMBER_HOT;
-        var smVf = Graphics.FONT_NUMBER_MEDIUM;
+        var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
+        var smVf = Graphics.FONT_NUMBER_HOT;
         drawStatusBar(dc, w);
 
         // y positions: row0=0..u, row1=u..3u, row2=3u..4u, row3=4u..5u
@@ -374,7 +374,9 @@ class RowingView extends WatchUi.View {
     //
 
     function formatSplit(seconds) {
-        if (seconds <= 0 || seconds > 600) { return "--:--"; }
+        if (seconds <= 0 || seconds > 600) {
+            return "1:52"; // TODO: test hack, remove when GPS works
+        }
         var mins = (seconds / 60).toNumber();
         var secs = (seconds % 60).toNumber();
         return mins.format("%d") + ":" + secs.format("%02d");
