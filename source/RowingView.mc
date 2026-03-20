@@ -384,7 +384,7 @@ class RowingView extends WatchUi.View {
 
     function formatSplit(seconds) {
         if (seconds <= 0 || seconds > 600) {
-            return "1:52"; // TODO: test hack, remove when GPS works
+            return "--:--";
         }
         var totalSecs = seconds.toNumber();
         var mins = totalSecs / 60;
