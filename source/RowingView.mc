@@ -220,21 +220,21 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Labels always FONT_XTINY. Values scale by cell height.
-    // 4-C: 2 tall rows (h*2/5) + 1 short row split (h/5) -> NUMBER_HOT tall, NUMBER_MEDIUM short
-    // 5-C: 1 short + 1 tall (h*2/5) + 1 short + 1 short split -> NUMBER_HOT tall, NUMBER_MEDIUM short
-    // Calibration: 3 equal rows -> NUMBER_HOT
+    // Font sizing:
+    //   Tall cells (2/4H, 2/5H): FONT_NUMBER_THAI_HOT (max available)
+    //   Short cells (1/4H, 1/5H): FONT_NUMBER_MILD
+    // 4-C proportions: tall=3/7, short=1/7 (gives tall cells more room)
+    // 5-C proportions: tall=3/7, short=1/7
 
     // Page 1 (4-C): SPM | Split/500m | Distance + HR
     function drawPage4C_1(dc, w, h) {
-        var tallH = h * 2 / 5;
-        var shortH = h / 5;
+        var tallH = h * 3 / 7;
+        var shortH = h - tallH * 2;
         var lf = Graphics.FONT_XTINY;
         var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
-        var smVf = Graphics.FONT_NUMBER_HOT;
+        var smVf = Graphics.FONT_NUMBER_MILD;
         drawStatusBar(dc, w);
 
-        // Dividers
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(0, tallH, w, tallH);
         dc.drawLine(0, tallH * 2, w, tallH * 2);
@@ -253,11 +253,11 @@ class RowingView extends WatchUi.View {
 
     // Page 2 (4-C): SPM | Distance | HR + Time
     function drawPage4C_2(dc, w, h) {
-        var tallH = h * 2 / 5;
-        var shortH = h / 5;
+        var tallH = h * 3 / 7;
+        var shortH = h - tallH * 2;
         var lf = Graphics.FONT_XTINY;
         var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
-        var smVf = Graphics.FONT_NUMBER_HOT;
+        var smVf = Graphics.FONT_NUMBER_MILD;
         drawStatusBar(dc, w);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
@@ -281,32 +281,37 @@ class RowingView extends WatchUi.View {
 
     // Page 3 (5-C): SPM | Split/500m | HR | Distance + Time
     function drawPage5C(dc, w, h) {
-        // Row heights: short=h/5, tall=2*h/5
-        var u = h / 5;
+        // 7 units total: short=1u, tall=3u -> 1+3+1+1+1=7
+        var u = h / 7;
+        var tallH = u * 3;
         var lf = Graphics.FONT_XTINY;
         var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
-        var smVf = Graphics.FONT_NUMBER_HOT;
+        var smVf = Graphics.FONT_NUMBER_MILD;
         drawStatusBar(dc, w);
 
-        // y positions: row0=0..u, row1=u..3u, row2=3u..4u, row3=4u..5u
+        // y: row0=0..u, row1=u..4u, row2=4u..5u, row3=5u..6u split, bottom=6u..7u
+        var y1 = u;
+        var y2 = u + tallH;
+        var y3 = y2 + u;
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(0, u, w, u);
-        dc.drawLine(0, u * 3, w, u * 3);
-        dc.drawLine(0, u * 4, w, u * 4);
-        dc.drawLine(w / 2, u * 4, w / 2, h);
+        dc.drawLine(0, y1, w, y1);
+        dc.drawLine(0, y2, w, y2);
+        dc.drawLine(0, y3, w, y3);
+        dc.drawLine(w / 2, y3, w / 2, h);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
         drawCell(dc, 0, 0, w, u, "STROKE RATE", spmStr, lf, smVf);
-        drawCell(dc, 0, u, w, u * 2, "SPLIT /500m", formatSplit(splitTime), lf, bigVf);
+        drawCell(dc, 0, y1, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigVf);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, 0, u * 3, w, u, "HR", hrStr, lf, smVf);
+        drawCell(dc, 0, y2, w, u, "HR", hrStr, lf, smVf);
 
-        drawCell(dc, 0, u * 4, w / 2, u, "DISTANCE", formatDistance(distance), lf, smVf);
+        var bottomH = h - y3;
+        drawCell(dc, 0, y3, w / 2, bottomH, "DISTANCE", formatDistance(distance), lf, smVf);
 
         var clockInfo = System.getClockTime();
         var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
-        drawCell(dc, w / 2, u * 4, w / 2, u, "TIME", timeStr, lf, smVf);
+        drawCell(dc, w / 2, y3, w / 2, bottomH, "TIME", timeStr, lf, smVf);
 
         drawPageIndicator(dc, w, h, 2);
     }
