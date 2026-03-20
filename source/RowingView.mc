@@ -386,8 +386,9 @@ class RowingView extends WatchUi.View {
         if (seconds <= 0 || seconds > 600) {
             return "1:52"; // TODO: test hack, remove when GPS works
         }
-        var mins = (seconds / 60).toNumber();
-        var secs = (seconds % 60).toNumber();
+        var totalSecs = seconds.toNumber();
+        var mins = totalSecs / 60;
+        var secs = totalSecs % 60;
         return mins.format("%d") + ":" + secs.format("%02d");
     }
 
