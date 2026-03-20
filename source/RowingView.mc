@@ -15,7 +15,7 @@ class RowingView extends WatchUi.View {
 
     var state = STATE_IDLE;
     var currentPage = 0;
-    const NUM_PAGES = 2;
+    const NUM_PAGES = 3;
 
     // Displayed metrics
     var splitTime = 0.0;    // seconds per 500m
@@ -32,6 +32,10 @@ class RowingView extends WatchUi.View {
     var lapStrokes = 0;
     var lapStartDist = 0.0;
     var lapStartStrokes = 0;
+
+    // Calibration screen data (from last getAccelStats call)
+    var lastLinMagMean = 0.0;
+    var lastLinMagMax = 0.0;
 
     // Split smoothing
     var speedBuf = new [5];
@@ -140,9 +144,13 @@ class RowingView extends WatchUi.View {
         }
 
         if (session != null) {
+            var stats = detector.getAccelStats();
             session.setStrokeRate(strokeRate.toNumber());
             session.setDPS(dps);
-            session.setAccelStats(detector.getAccelStats());
+            session.setAccelStats(stats);
+            // stats: [xm, ym, zm, linMagMin, linMagMax, linMagMean, ema]
+            lastLinMagMax = stats[4];
+            lastLinMagMean = stats[5];
         }
     }
 
@@ -184,27 +192,23 @@ class RowingView extends WatchUi.View {
             drawIdleScreen(dc, w, h);
         } else if (currentPage == 0) {
             drawPage1(dc, w, h);
-        } else {
+        } else if (currentPage == 1) {
             drawPage2(dc, w, h);
+        } else {
+            drawPageCalibration(dc, w, h);
         }
     }
 
     function drawIdleScreen(dc, w, h) {
-        // Minimal branding -- small text at top
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 2, Graphics.FONT_XTINY, "RowEdge",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, h / 2 - 20, Graphics.FONT_MEDIUM, "Press START",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Show current threshold setting
         var app = Application.getApp();
         var thr = app.strokeDetector.catchThreshold;
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, h / 2 + 20, Graphics.FONT_SMALL,
-                    "Threshold: " + thr.format("%.0f"),
+                    "Thr: " + thr.format("%.0f") + " mG",
                     Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, h / 2 + 50, Graphics.FONT_XTINY,
                     "MENU to adjust",
@@ -265,6 +269,27 @@ class RowingView extends WatchUi.View {
                      Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
 
         drawPageIndicator(dc, w, h, 1);
+    }
+
+    // Page 3: Calibration -- Strokes | AVG accel | MAX accel
+    function drawPageCalibration(dc, w, h) {
+        var rowH = h / 3;
+        drawStatusBar(dc, w);
+        drawDividers(dc, w, h, 3);
+
+        drawWideCell(dc, 0, 0, w, rowH,
+                     "STROKES", strokeCount.format("%d"),
+                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+
+        drawWideCell(dc, 0, rowH, w, rowH,
+                     "AVG ACCEL (mG)", lastLinMagMean.format("%.0f"),
+                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+
+        drawWideCell(dc, 0, rowH * 2, w, rowH,
+                     "MAX ACCEL (mG)", lastLinMagMax.format("%.0f"),
+                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+
+        drawPageIndicator(dc, w, h, 2);
     }
 
     // Small recording indicator + page dots
