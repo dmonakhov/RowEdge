@@ -111,6 +111,10 @@ class ThresholdView extends WatchUi.View {
         View.initialize();
     }
 
+    function onShow() {
+        setControlBar(null);
+    }
+
     function onUpdate(dc) {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
         dc.clear();

@@ -53,6 +53,8 @@ class RowingView extends WatchUi.View {
     }
 
     function onShow() {
+        // Hide system title/control bar to get full screen
+        setControlBar(null);
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
         updateTimer = new Timer.Timer();
         updateTimer.start(method(:onTimer), 1000, true);
