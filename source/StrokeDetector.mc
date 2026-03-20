@@ -43,7 +43,7 @@ class StrokeDetector {
 
     // Tuning: adjustable at runtime via menu
     // Now positive: magnitude threshold for detecting drive phase peak
-    var catchThreshold = 80.0; // milliG linear accel magnitude
+    var catchThreshold = 900.0; // milliG linear accel magnitude
 
     // Fixed constants
     // Typical: 20 spm (3s/stroke), high: 35 spm (1.7s), absolute max: 60 spm (1s)

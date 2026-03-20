@@ -183,7 +183,7 @@ class ThresholdDelegate extends WatchUi.BehaviorDelegate {
         var detector = app.strokeDetector;
         var newVal = detector.catchThreshold + delta;
         if (newVal < 10) { newVal = 10; }
-        if (newVal > 500) { newVal = 500; }
+        if (newVal > 1500) { newVal = 1500; }
         detector.catchThreshold = newVal;
         Application.Storage.setValue("catchThreshold", newVal.toNumber());
         WatchUi.requestUpdate();
