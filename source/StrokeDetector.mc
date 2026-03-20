@@ -198,6 +198,11 @@ class StrokeDetector {
         }
     }
 
+    // Called once per second to refresh stroke rate even when no new strokes
+    function refreshStrokeRate() {
+        strokeRate = computeStrokeRate(System.getTimer());
+    }
+
     // Called once per second to snapshot stats and reset window
     // Returns: [rawXmean, rawYmean, rawZmean, linMagMin, linMagMax, linMagMean, ema]
     function getAccelStats() {

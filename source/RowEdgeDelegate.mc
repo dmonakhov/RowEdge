@@ -1,13 +1,14 @@
 using Toybox.WatchUi;
+using Toybox.Graphics;
 using Toybox.System;
 using Toybox.Application;
 
 // Edge 540 buttons:
-//   ENTER (select) = start/stop activity
-//   BACK  = lap (during recording) or exit (when idle)
-//   UP    = previous page
-//   DOWN  = next page
-//   MENU  = open settings menu (threshold adjust)
+//   ENTER  = start / pause / resume
+//   BACK   = lap (recording) | stop+save prompt (paused) | exit (idle)
+//   UP     = previous page
+//   DOWN   = next page
+//   MENU   = threshold adjustment
 
 class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
 
@@ -22,19 +23,21 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         var app = Application.getApp();
         var session = app.rowingSession;
 
-        if (!session.isRecording()) {
+        if (view.state == RowingView.STATE_IDLE) {
+            // Start new activity
             session.start();
             app.strokeDetector.start();
             view.setState(RowingView.STATE_RECORDING);
-        } else {
+        } else if (view.state == RowingView.STATE_RECORDING) {
+            // Pause
             app.strokeDetector.stop();
             session.stop();
-            view.setState(RowingView.STATE_STOPPED);
-            WatchUi.pushView(
-                new WatchUi.Confirmation("Save activity?"),
-                new SaveConfirmDelegate(view),
-                WatchUi.SLIDE_UP
-            );
+            view.setState(RowingView.STATE_PAUSED);
+        } else if (view.state == RowingView.STATE_PAUSED) {
+            // Resume
+            session.resume();
+            app.strokeDetector.start();
+            view.setState(RowingView.STATE_RECORDING);
         }
         WatchUi.requestUpdate();
         return true;
@@ -42,14 +45,23 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
 
     function onBack() {
         var app = Application.getApp();
-        var session = app.rowingSession;
 
-        if (session.isRecording()) {
-            session.addLap();
+        if (view.state == RowingView.STATE_RECORDING) {
+            // Lap
+            app.rowingSession.addLap();
             view.onLap();
             WatchUi.requestUpdate();
             return true;
+        } else if (view.state == RowingView.STATE_PAUSED) {
+            // Stop -- ask save/discard
+            WatchUi.pushView(
+                new WatchUi.Confirmation("Save activity?"),
+                new SaveConfirmDelegate(view),
+                WatchUi.SLIDE_UP
+            );
+            return true;
         }
+        // Idle -- exit app
         return false;
     }
 
@@ -101,8 +113,7 @@ class SaveConfirmDelegate extends WatchUi.ConfirmationDelegate {
 }
 
 //
-// In-app threshold adjustment screen
-// UP/DOWN changes value, BACK exits
+// Threshold adjustment: UP/DOWN +/-10, BACK exits
 //
 
 class ThresholdView extends WatchUi.View {
@@ -158,12 +169,12 @@ class ThresholdDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() {
-        adjustThreshold(10); // UP = higher = less sensitive
+        adjustThreshold(10);
         return true;
     }
 
     function onNextPage() {
-        adjustThreshold(-10); // DOWN = lower = more sensitive
+        adjustThreshold(-10);
         return true;
     }
 
@@ -171,7 +182,6 @@ class ThresholdDelegate extends WatchUi.BehaviorDelegate {
         var app = Application.getApp();
         var detector = app.strokeDetector;
         var newVal = detector.catchThreshold + delta;
-        // Clamp to reasonable range: 10 to 500 milliG
         if (newVal < 10) { newVal = 10; }
         if (newVal > 500) { newVal = 500; }
         detector.catchThreshold = newVal;

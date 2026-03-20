@@ -89,6 +89,12 @@ class RowingSession {
         }
     }
 
+    function resume() {
+        if (session != null && !session.isRecording()) {
+            session.start();
+        }
+    }
+
     function save() {
         if (session != null) {
             session.save();

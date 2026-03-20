@@ -10,7 +10,7 @@ class RowingView extends WatchUi.View {
     enum {
         STATE_IDLE,
         STATE_RECORDING,
-        STATE_STOPPED
+        STATE_PAUSED
     }
 
     var state = STATE_IDLE;
@@ -105,7 +105,7 @@ class RowingView extends WatchUi.View {
     }
 
     function onTimer() as Void {
-        if (state == STATE_RECORDING) {
+        if (state == STATE_RECORDING || state == STATE_PAUSED) {
             updateMetrics();
         }
         WatchUi.requestUpdate();
@@ -116,6 +116,7 @@ class RowingView extends WatchUi.View {
         var detector = app.strokeDetector;
         var session = app.rowingSession;
 
+        detector.refreshStrokeRate();
         strokeRate = detector.strokeRate;
         strokeCount = detector.strokeCount;
 
@@ -333,9 +334,9 @@ class RowingView extends WatchUi.View {
         if (state == STATE_RECORDING) {
             dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
             dc.fillCircle(8, 8, 4);
-        } else if (state == STATE_STOPPED) {
+        } else if (state == STATE_PAUSED) {
             dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, 0, Graphics.FONT_XTINY, "STOPPED",
+            dc.drawText(w / 2, 0, Graphics.FONT_XTINY, "PAUSED",
                         Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
