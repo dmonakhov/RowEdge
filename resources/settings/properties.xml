@@ -1,0 +1,5 @@
+<properties>
+    <property id="autoPauseSpeed" type="float">0.5</property>
+    <property id="splitSmoothing" type="number">5</property>
+    <property id="strokeSmoothing" type="number">5</property>
+</properties>
