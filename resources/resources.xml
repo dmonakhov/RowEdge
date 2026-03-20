@@ -1,6 +1,6 @@
 <resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <fonts>
-        <font id="id_font_big_num" filename="fonts/big_num.fnt" filter="0123456789" />
-        <font id="id_font_small_num" filename="fonts/small_num.fnt" filter="0123456789" />
+        <font id="id_font_big_num" filename="fonts/big_num.fnt" filter="0123456789:.-km " />
+        <font id="id_font_small_num" filename="fonts/small_num.fnt" filter="0123456789:.-km " />
     </fonts>
 </resources>
