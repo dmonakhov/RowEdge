@@ -15,7 +15,7 @@ class RowingView extends WatchUi.View {
 
     var state = STATE_IDLE;
     var currentPage = 0;
-    const NUM_PAGES = 3;
+    const NUM_PAGES = 4; // page0=4C, page1=4C, page2=5C, page3=calibration
 
     // Displayed metrics
     var splitTime = 0.0;    // seconds per 500m
@@ -193,9 +193,11 @@ class RowingView extends WatchUi.View {
         if (state == STATE_IDLE) {
             drawIdleScreen(dc, w, h);
         } else if (currentPage == 0) {
-            drawPage1(dc, w, h);
+            drawPage4C_1(dc, w, h);
         } else if (currentPage == 1) {
-            drawPage2(dc, w, h);
+            drawPage4C_2(dc, w, h);
+        } else if (currentPage == 2) {
+            drawPage5C(dc, w, h);
         } else {
             drawPageCalibration(dc, w, h);
         }
@@ -217,66 +219,116 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // 4-field pages: FONT_TINY labels, FONT_NUMBER_MEDIUM values
-    // 3-field pages: FONT_SMALL labels, FONT_NUMBER_HOT values
+    // Labels always FONT_XTINY. Values scale by cell height.
+    // 4-C: 2 tall rows (h*2/5) + 1 short row split (h/5) -> NUMBER_HOT tall, NUMBER_MEDIUM short
+    // 5-C: 1 short + 1 tall (h*2/5) + 1 short + 1 short split -> NUMBER_HOT tall, NUMBER_MEDIUM short
+    // Calibration: 3 equal rows -> NUMBER_HOT
 
-    // Page 1: SPM | Split/500m | Distance | HR
-    function drawPage1(dc, w, h) {
-        var rowH = h / 4;
-        var lf = Graphics.FONT_TINY;
-        var vf = Graphics.FONT_NUMBER_MEDIUM;
+    // Page 1 (4-C): SPM | Split/500m | Distance + HR
+    function drawPage4C_1(dc, w, h) {
+        var tallH = h * 2 / 5;
+        var shortH = h / 5;
+        var lf = Graphics.FONT_XTINY;
+        var bigVf = Graphics.FONT_NUMBER_HOT;
+        var smVf = Graphics.FONT_NUMBER_MEDIUM;
         drawStatusBar(dc, w);
-        drawDividers(dc, w, h, 4);
+
+        // Dividers
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(0, tallH, w, tallH);
+        dc.drawLine(0, tallH * 2, w, tallH * 2);
+        dc.drawLine(w / 2, tallH * 2, w / 2, h);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawWideCell(dc, 0, 0, w, rowH, "STROKE RATE", spmStr, lf, vf);
-        drawWideCell(dc, 0, rowH, w, rowH, "SPLIT /500m", formatSplit(splitTime), lf, vf);
-        drawWideCell(dc, 0, rowH * 2, w, rowH, "DISTANCE", formatDistance(distance), lf, vf);
+        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigVf);
+        drawCell(dc, 0, tallH, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigVf);
+        drawCell(dc, 0, tallH * 2, w / 2, shortH, "DISTANCE", formatDistance(distance), lf, smVf);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawWideCell(dc, 0, rowH * 3, w, rowH, "HEART RATE", hrStr, lf, vf);
+        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smVf);
 
         drawPageIndicator(dc, w, h, 0);
     }
 
-    // Page 2: SPM | Distance | HR | Time of Day
-    function drawPage2(dc, w, h) {
-        var rowH = h / 4;
-        var lf = Graphics.FONT_TINY;
-        var vf = Graphics.FONT_NUMBER_MEDIUM;
+    // Page 2 (4-C): SPM | Distance | HR + Time
+    function drawPage4C_2(dc, w, h) {
+        var tallH = h * 2 / 5;
+        var shortH = h / 5;
+        var lf = Graphics.FONT_XTINY;
+        var bigVf = Graphics.FONT_NUMBER_HOT;
+        var smVf = Graphics.FONT_NUMBER_MEDIUM;
         drawStatusBar(dc, w);
-        drawDividers(dc, w, h, 4);
+
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(0, tallH, w, tallH);
+        dc.drawLine(0, tallH * 2, w, tallH * 2);
+        dc.drawLine(w / 2, tallH * 2, w / 2, h);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawWideCell(dc, 0, 0, w, rowH, "STROKE RATE", spmStr, lf, vf);
-        drawWideCell(dc, 0, rowH, w, rowH, "DISTANCE", formatDistance(distance), lf, vf);
+        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigVf);
+        drawCell(dc, 0, tallH, w, tallH, "DISTANCE", formatDistance(distance), lf, bigVf);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawWideCell(dc, 0, rowH * 2, w, rowH, "HEART RATE", hrStr, lf, vf);
+        drawCell(dc, 0, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smVf);
 
         var clockInfo = System.getClockTime();
         var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
-        drawWideCell(dc, 0, rowH * 3, w, rowH, "TIME OF DAY", timeStr, lf, vf);
+        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "TIME", timeStr, lf, smVf);
 
         drawPageIndicator(dc, w, h, 1);
     }
 
-    // Page 3: Calibration -- 3 fields, larger fonts
-    function drawPageCalibration(dc, w, h) {
-        var rowH = h / 3;
-        var lf = Graphics.FONT_SMALL;
-        var vf = Graphics.FONT_NUMBER_HOT;
+    // Page 3 (5-C): SPM | Split/500m | HR | Distance + Time
+    function drawPage5C(dc, w, h) {
+        // Row heights: short=h/5, tall=2*h/5
+        var u = h / 5;
+        var lf = Graphics.FONT_XTINY;
+        var bigVf = Graphics.FONT_NUMBER_HOT;
+        var smVf = Graphics.FONT_NUMBER_MEDIUM;
         drawStatusBar(dc, w);
-        drawDividers(dc, w, h, 3);
 
-        drawWideCell(dc, 0, 0, w, rowH, "STROKES", strokeCount.format("%d"), lf, vf);
-        drawWideCell(dc, 0, rowH, w, rowH, "AVG ACCEL mG", lastLinMagMean.format("%.0f"), lf, vf);
-        drawWideCell(dc, 0, rowH * 2, w, rowH, "MAX ACCEL mG", lastLinMagMax.format("%.0f"), lf, vf);
+        // y positions: row0=0..u, row1=u..3u, row2=3u..4u, row3=4u..5u
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(0, u, w, u);
+        dc.drawLine(0, u * 3, w, u * 3);
+        dc.drawLine(0, u * 4, w, u * 4);
+        dc.drawLine(w / 2, u * 4, w / 2, h);
+
+        var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
+        drawCell(dc, 0, 0, w, u, "STROKE RATE", spmStr, lf, smVf);
+        drawCell(dc, 0, u, w, u * 2, "SPLIT /500m", formatSplit(splitTime), lf, bigVf);
+
+        var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
+        drawCell(dc, 0, u * 3, w, u, "HR", hrStr, lf, smVf);
+
+        drawCell(dc, 0, u * 4, w / 2, u, "DISTANCE", formatDistance(distance), lf, smVf);
+
+        var clockInfo = System.getClockTime();
+        var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
+        drawCell(dc, w / 2, u * 4, w / 2, u, "TIME", timeStr, lf, smVf);
 
         drawPageIndicator(dc, w, h, 2);
     }
 
-    // Small recording indicator + page dots
+    // Page 4: Calibration -- 3 equal rows
+    function drawPageCalibration(dc, w, h) {
+        var rowH = h / 3;
+        var lf = Graphics.FONT_XTINY;
+        var vf = Graphics.FONT_NUMBER_HOT;
+        drawStatusBar(dc, w);
+
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(0, rowH, w, rowH);
+        dc.drawLine(0, rowH * 2, w, rowH * 2);
+
+        drawCell(dc, 0, 0, w, rowH, "STROKES", strokeCount.format("%d"), lf, vf);
+        drawCell(dc, 0, rowH, w, rowH, "AVG ACCEL mG", lastLinMagMean.format("%.0f"), lf, vf);
+        drawCell(dc, 0, rowH * 2, w, rowH, "MAX ACCEL mG", lastLinMagMax.format("%.0f"), lf, vf);
+
+        drawPageIndicator(dc, w, h, 3);
+    }
+
+    // Recording indicator
     function drawStatusBar(dc, w) {
         if (state == STATE_RECORDING) {
             dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
@@ -288,42 +340,33 @@ class RowingView extends WatchUi.View {
         }
     }
 
-    function drawDividers(dc, w, h, rows) {
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        for (var i = 1; i < rows; i++) {
-            var y = h * i / rows;
-            dc.drawLine(0, y, w, y);
-        }
-    }
-
     function drawPageIndicator(dc, w, h, page) {
-        // Two small dots at bottom-right
         var dotY = h - 6;
-        var dotX = w - 16;
+        var totalW = NUM_PAGES * 10 - 4;
+        var dotX = w - totalW - 4;
         for (var i = 0; i < NUM_PAGES; i++) {
             if (i == page) {
                 dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dotX + i * 10, dotY, 3);
             } else {
                 dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dotX + i * 10, dotY, 3);
             }
+            dc.fillCircle(dotX + i * 10, dotY, 3);
         }
     }
 
-    // Full-width cell with label on left, value on right
-    function drawWideCell(dc, x, y, w, h, label, value, lblFont, valFont) {
-        var cy = y + h / 2;
+    // Generic cell: label (XTINY) at top, value (large) centered below
+    function drawCell(dc, x, y, w, h, label, value, lblFont, valFont) {
+        var cx = x + w / 2;
         var lblH = dc.getFontHeight(lblFont);
         var valH = dc.getFontHeight(valFont);
         var totalH = lblH + valH;
-        var topY = cy - totalH / 2;
+        var topY = y + (h - totalH) / 2;
 
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + w / 2, topY, lblFont, label, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, topY, lblFont, label, Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + w / 2, topY + lblH, valFont, value, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, topY + lblH, valFont, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     //
