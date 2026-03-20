@@ -45,6 +45,10 @@ class RowingView extends WatchUi.View {
     // Update timer
     var updateTimer = null;
 
+    // Custom vector fonts (larger than built-in NUMBER_THAI_HOT)
+    var bigNumFont = null;   // for 2x height cells (~40px)
+    var smallNumFont = null; // for 1x height cells (~22px)
+
     function initialize() {
         View.initialize();
         for (var i = 0; i < speedBuf.size(); i++) {
@@ -53,8 +57,18 @@ class RowingView extends WatchUi.View {
     }
 
     function onShow() {
-        // Hide system title/control bar to get full screen
         setControlBar(null);
+
+        // Create vector fonts: Garmin_Roboto_Bold at custom pixel sizes
+        // Built-in numberThaiHot = 42px. We go to 56px for tall cells (+33%)
+        // Built-in numberHot = 34px. We use 22px for short cells
+        var faces = ["RobotoCondensedBold", "Garmin_Roboto_Bold"];
+        bigNumFont = Graphics.getVectorFont({:face => faces, :size => 56});
+        smallNumFont = Graphics.getVectorFont({:face => faces, :size => 22});
+        // Fallback if vector fonts not supported
+        if (bigNumFont == null) { bigNumFont = Graphics.FONT_NUMBER_THAI_HOT; }
+        if (smallNumFont == null) { smallNumFont = Graphics.FONT_NUMBER_MILD; }
+
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
         updateTimer = new Timer.Timer();
         updateTimer.start(method(:onTimer), 1000, true);
@@ -220,19 +234,14 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Font sizing:
-    //   Tall cells (2/4H, 2/5H): FONT_NUMBER_THAI_HOT (max available)
-    //   Short cells (1/4H, 1/5H): FONT_NUMBER_MILD
-    // 4-C proportions: tall=3/7, short=1/7 (gives tall cells more room)
-    // 5-C proportions: tall=3/7, short=1/7
+    // Fonts: vector bigNumFont (56px) for 2x cells, vector smallNumFont (22px) for 1x cells
+    // Proportions: original 2/5 tall, 1/5 short
 
     // Page 1 (4-C): SPM | Split/500m | Distance + HR
     function drawPage4C_1(dc, w, h) {
-        var tallH = h * 3 / 7;
-        var shortH = h - tallH * 2;
+        var tallH = h * 2 / 5;
+        var shortH = h / 5;
         var lf = Graphics.FONT_XTINY;
-        var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
-        var smVf = Graphics.FONT_NUMBER_MILD;
         drawStatusBar(dc, w);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
@@ -241,23 +250,21 @@ class RowingView extends WatchUi.View {
         dc.drawLine(w / 2, tallH * 2, w / 2, h);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigVf);
-        drawCell(dc, 0, tallH, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigVf);
-        drawCell(dc, 0, tallH * 2, w / 2, shortH, "DISTANCE", formatDistance(distance), lf, smVf);
+        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigNumFont);
+        drawCell(dc, 0, tallH, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigNumFont);
+        drawCell(dc, 0, tallH * 2, w / 2, shortH, "DISTANCE", formatDistance(distance), lf, smallNumFont);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smVf);
+        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smallNumFont);
 
         drawPageIndicator(dc, w, h, 0);
     }
 
     // Page 2 (4-C): SPM | Distance | HR + Time
     function drawPage4C_2(dc, w, h) {
-        var tallH = h * 3 / 7;
-        var shortH = h - tallH * 2;
+        var tallH = h * 2 / 5;
+        var shortH = h / 5;
         var lf = Graphics.FONT_XTINY;
-        var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
-        var smVf = Graphics.FONT_NUMBER_MILD;
         drawStatusBar(dc, w);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
@@ -266,52 +273,44 @@ class RowingView extends WatchUi.View {
         dc.drawLine(w / 2, tallH * 2, w / 2, h);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigVf);
-        drawCell(dc, 0, tallH, w, tallH, "DISTANCE", formatDistance(distance), lf, bigVf);
+        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigNumFont);
+        drawCell(dc, 0, tallH, w, tallH, "DISTANCE", formatDistance(distance), lf, bigNumFont);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, 0, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smVf);
+        drawCell(dc, 0, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smallNumFont);
 
         var clockInfo = System.getClockTime();
         var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
-        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "TIME", timeStr, lf, smVf);
+        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "TIME", timeStr, lf, smallNumFont);
 
         drawPageIndicator(dc, w, h, 1);
     }
 
     // Page 3 (5-C): SPM | Split/500m | HR | Distance + Time
     function drawPage5C(dc, w, h) {
-        // 7 units total: short=1u, tall=3u -> 1+3+1+1+1=7
-        var u = h / 7;
-        var tallH = u * 3;
+        var u = h / 5;
         var lf = Graphics.FONT_XTINY;
-        var bigVf = Graphics.FONT_NUMBER_THAI_HOT;
-        var smVf = Graphics.FONT_NUMBER_MILD;
         drawStatusBar(dc, w);
 
-        // y: row0=0..u, row1=u..4u, row2=4u..5u, row3=5u..6u split, bottom=6u..7u
-        var y1 = u;
-        var y2 = u + tallH;
-        var y3 = y2 + u;
+        // y: row0=0..u, row1=u..3u, row2=3u..4u, row3=4u..5u
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(0, y1, w, y1);
-        dc.drawLine(0, y2, w, y2);
-        dc.drawLine(0, y3, w, y3);
-        dc.drawLine(w / 2, y3, w / 2, h);
+        dc.drawLine(0, u, w, u);
+        dc.drawLine(0, u * 3, w, u * 3);
+        dc.drawLine(0, u * 4, w, u * 4);
+        dc.drawLine(w / 2, u * 4, w / 2, h);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawCell(dc, 0, 0, w, u, "STROKE RATE", spmStr, lf, smVf);
-        drawCell(dc, 0, y1, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigVf);
+        drawCell(dc, 0, 0, w, u, "STROKE RATE", spmStr, lf, smallNumFont);
+        drawCell(dc, 0, u, w, u * 2, "SPLIT /500m", formatSplit(splitTime), lf, bigNumFont);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, 0, y2, w, u, "HR", hrStr, lf, smVf);
+        drawCell(dc, 0, u * 3, w, u, "HR", hrStr, lf, smallNumFont);
 
-        var bottomH = h - y3;
-        drawCell(dc, 0, y3, w / 2, bottomH, "DISTANCE", formatDistance(distance), lf, smVf);
+        drawCell(dc, 0, u * 4, w / 2, u, "DISTANCE", formatDistance(distance), lf, smallNumFont);
 
         var clockInfo = System.getClockTime();
         var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
-        drawCell(dc, w / 2, y3, w / 2, bottomH, "TIME", timeStr, lf, smVf);
+        drawCell(dc, w / 2, u * 4, w / 2, u, "TIME", timeStr, lf, smallNumFont);
 
         drawPageIndicator(dc, w, h, 2);
     }
@@ -320,16 +319,15 @@ class RowingView extends WatchUi.View {
     function drawPageCalibration(dc, w, h) {
         var rowH = h / 3;
         var lf = Graphics.FONT_XTINY;
-        var vf = Graphics.FONT_NUMBER_HOT;
         drawStatusBar(dc, w);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(0, rowH, w, rowH);
         dc.drawLine(0, rowH * 2, w, rowH * 2);
 
-        drawCell(dc, 0, 0, w, rowH, "STROKES", strokeCount.format("%d"), lf, vf);
-        drawCell(dc, 0, rowH, w, rowH, "AVG ACCEL mG", lastLinMagMean.format("%.0f"), lf, vf);
-        drawCell(dc, 0, rowH * 2, w, rowH, "MAX ACCEL mG", lastLinMagMax.format("%.0f"), lf, vf);
+        drawCell(dc, 0, 0, w, rowH, "STROKES", strokeCount.format("%d"), lf, bigNumFont);
+        drawCell(dc, 0, rowH, w, rowH, "AVG ACCEL mG", lastLinMagMean.format("%.0f"), lf, bigNumFont);
+        drawCell(dc, 0, rowH * 2, w, rowH, "MAX ACCEL mG", lastLinMagMax.format("%.0f"), lf, bigNumFont);
 
         drawPageIndicator(dc, w, h, 3);
     }
