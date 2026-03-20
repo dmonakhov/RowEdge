@@ -130,20 +130,19 @@ class ThresholdView extends WatchUi.View {
 
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, h / 2 + 30, Graphics.FONT_XTINY,
-                    "milliG (negative)",
+                    "milliG linear accel",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.drawText(w / 2, h / 2 + 55, Graphics.FONT_XTINY,
-                    "UP/DOWN: +/- 10",
+                    "UP: +10  DOWN: -10",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.drawText(w / 2, h / 2 + 75, Graphics.FONT_XTINY,
                     "BACK: done",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Show sensitivity guide
         dc.drawText(w / 2, h - 40, Graphics.FONT_XTINY,
-                    "Less neg = more sensitive",
+                    "Lower = more sensitive",
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
@@ -154,13 +153,13 @@ class ThresholdDelegate extends WatchUi.BehaviorDelegate {
         BehaviorDelegate.initialize();
     }
 
-    function onNextPage() {
-        adjustThreshold(-10); // more negative = less sensitive
+    function onPreviousPage() {
+        adjustThreshold(10); // UP = higher = less sensitive
         return true;
     }
 
-    function onPreviousPage() {
-        adjustThreshold(10); // less negative = more sensitive
+    function onNextPage() {
+        adjustThreshold(-10); // DOWN = lower = more sensitive
         return true;
     }
 
@@ -168,11 +167,10 @@ class ThresholdDelegate extends WatchUi.BehaviorDelegate {
         var app = Application.getApp();
         var detector = app.strokeDetector;
         var newVal = detector.catchThreshold + delta;
-        // Clamp to reasonable range: -300 to -10
-        if (newVal > -10) { newVal = -10; }
-        if (newVal < -300) { newVal = -300; }
+        // Clamp to reasonable range: 10 to 500 milliG
+        if (newVal < 10) { newVal = 10; }
+        if (newVal > 500) { newVal = 500; }
         detector.catchThreshold = newVal;
-        // Persist to storage
         Application.Storage.setValue("catchThreshold", newVal.toNumber());
         WatchUi.requestUpdate();
     }

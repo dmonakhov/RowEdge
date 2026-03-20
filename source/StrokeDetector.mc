@@ -3,16 +3,18 @@ using Toybox.Math;
 using Toybox.System;
 using Toybox.Application;
 
-// Detects rowing strokes from accelerometer data.
-// Algorithm: smoothed peak detection on forward acceleration axis.
+// Orientation-independent stroke detection from accelerometer.
 //
-// The Edge is mounted on the boat. During rowing:
-//   Drive phase  -> boat accelerates forward (positive accel)
-//   Recovery     -> boat decelerates (negative accel)
-//   Catch point  -> sharp negative-to-positive transition
+// Problem: Edge is mounted at arbitrary angle on the boat, so we
+// cannot assume which axis is "forward".
 //
-// We detect catch points as negative peaks (local minima) in the
-// smoothed forward acceleration signal.
+// Solution: Subtract gravity estimate (slow-moving average per axis)
+// to get linear acceleration, then use its magnitude for detection.
+// The magnitude peaks during drive phase regardless of mounting angle.
+//
+// Signal flow:
+//   raw x,y,z -> subtract gravity_est -> linear accel -> magnitude
+//   -> EMA smoothing -> peak detection (above threshold) -> stroke
 
 class StrokeDetector {
 
@@ -21,40 +23,56 @@ class StrokeDetector {
     var strokeRate = 0.0;      // strokes per minute
     var lastStrokeTime = 0;    // ms timestamp of last detected stroke
 
-    // Smoothing buffer for inter-stroke intervals (for stable SPM)
+    // Smoothing buffer for inter-stroke intervals
     var intervalBuf = new [8];
     var intervalIdx = 0;
     var intervalCount = 0;
 
-    // Signal processing state
+    // Gravity estimation (slow EMA per axis, converges to gravity vector)
+    var gravX = 0.0;
+    var gravY = 0.0;
+    var gravZ = 1000.0;  // assume ~1G downward initially
+    const GRAV_ALPHA = 0.01; // very slow -- tracks gravity, not motion
+
+    // Signal processing on linear acceleration magnitude
     var emaValue = 0.0;
     var prevEma = 0.0;
-    var wasNegative = false;
+    var wasPeak = false;   // was signal above threshold on prev sample?
     var running = false;
 
-    // 1-second accel statistics for FIT recording
-    var accelMin = 0.0;    // min raw Y in current window
-    var accelMax = 0.0;    // max raw Y in current window
-    var accelSum = 0.0;    // sum for mean calculation
-    var accelCount = 0;    // sample count in current window
-    var emaSnapshot = 0.0; // EMA value at end of window
-
     // Tuning: adjustable at runtime via menu
-    var catchThreshold = -80.0; // milliG, minimum dip to count as stroke
+    // Now positive: magnitude threshold for detecting drive phase peak
+    var catchThreshold = 80.0; // milliG linear accel magnitude
 
     // Fixed constants
     const EMA_ALPHA = 0.15;
     const MIN_STROKE_INTERVAL = 1200; // ms, max ~50 spm
     const MAX_STROKE_INTERVAL = 6000; // ms, min ~10 spm
 
+    // 1-second statistics for FIT recording
+    // Raw axes (mean per window for compact recording)
+    var rawXsum = 0.0;
+    var rawYsum = 0.0;
+    var rawZsum = 0.0;
+    // Linear accel magnitude stats
+    var linMagMin = 0.0;
+    var linMagMax = 0.0;
+    var linMagSum = 0.0;
+    var emaSnapshot = 0.0;
+    var sampleCount = 0;
+
     function initialize() {
         for (var i = 0; i < intervalBuf.size(); i++) {
             intervalBuf[i] = 0;
         }
-        // Load persisted threshold
         var saved = Application.Storage.getValue("catchThreshold");
         if (saved != null) {
             catchThreshold = saved.toFloat();
+            // Migrate old negative values to positive
+            if (catchThreshold < 0) {
+                catchThreshold = -catchThreshold;
+                Application.Storage.setValue("catchThreshold", catchThreshold.toNumber());
+            }
         }
     }
 
@@ -82,7 +100,6 @@ class StrokeDetector {
             try {
                 Sensor.unregisterSensorDataListener();
             } catch (e) {
-                // ignore
             }
         }
     }
@@ -95,7 +112,10 @@ class StrokeDetector {
         intervalCount = 0;
         emaValue = 0.0;
         prevEma = 0.0;
-        wasNegative = false;
+        wasPeak = false;
+        gravX = 0.0;
+        gravY = 0.0;
+        gravZ = 1000.0;
     }
 
     function onSensorData(sensorData as Sensor.SensorData) as Void {
@@ -104,32 +124,57 @@ class StrokeDetector {
         var accelData = sensorData.accelerometerData;
         if (accelData == null) { return; }
 
+        var xData = accelData.x;
         var yData = accelData.y;
-        if (yData == null) { return; }
+        var zData = accelData.z;
+        if (xData == null || yData == null || zData == null) { return; }
 
         var now = System.getTimer();
+        var n = xData.size();
+        if (yData.size() < n) { n = yData.size(); }
+        if (zData.size() < n) { n = zData.size(); }
 
-        for (var i = 0; i < yData.size(); i++) {
-            var sample = yData[i].toFloat();
+        for (var i = 0; i < n; i++) {
+            var rx = xData[i].toFloat();
+            var ry = yData[i].toFloat();
+            var rz = zData[i].toFloat();
 
-            // Track raw accel statistics for FIT recording
-            if (accelCount == 0) {
-                accelMin = sample;
-                accelMax = sample;
+            // Update gravity estimate (slow EMA)
+            gravX = GRAV_ALPHA * rx + (1.0 - GRAV_ALPHA) * gravX;
+            gravY = GRAV_ALPHA * ry + (1.0 - GRAV_ALPHA) * gravY;
+            gravZ = GRAV_ALPHA * rz + (1.0 - GRAV_ALPHA) * gravZ;
+
+            // Linear acceleration = raw - gravity
+            var lx = rx - gravX;
+            var ly = ry - gravY;
+            var lz = rz - gravZ;
+
+            // Magnitude of linear acceleration
+            var mag = Math.sqrt(lx * lx + ly * ly + lz * lz);
+
+            // Track statistics for FIT recording
+            rawXsum += rx;
+            rawYsum += ry;
+            rawZsum += rz;
+            linMagSum += mag;
+            if (sampleCount == 0) {
+                linMagMin = mag;
+                linMagMax = mag;
             } else {
-                if (sample < accelMin) { accelMin = sample; }
-                if (sample > accelMax) { accelMax = sample; }
+                if (mag < linMagMin) { linMagMin = mag; }
+                if (mag > linMagMax) { linMagMax = mag; }
             }
-            accelSum += sample;
-            accelCount++;
+            sampleCount++;
 
-            // Exponential moving average
-            emaValue = EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * emaValue;
+            // EMA on magnitude
+            emaValue = EMA_ALPHA * mag + (1.0 - EMA_ALPHA) * emaValue;
 
-            // Detect negative-to-positive crossing after dip below threshold
-            var isNegative = (emaValue < catchThreshold);
+            // Stroke detection: detect peak (above threshold) then falling
+            // A stroke = magnitude rises above threshold then falls below
+            var isPeak = (emaValue > catchThreshold);
 
-            if (wasNegative && !isNegative) {
+            if (wasPeak && !isPeak) {
+                // Falling edge after peak = end of drive phase = stroke
                 var interval = now - lastStrokeTime;
 
                 if (lastStrokeTime > 0 &&
@@ -146,24 +191,35 @@ class StrokeDetector {
                 }
             }
 
-            wasNegative = isNegative;
+            wasPeak = isPeak;
             prevEma = emaValue;
         }
     }
 
-    // Called once per second by RowingView to snapshot and reset the window
+    // Called once per second to snapshot stats and reset window
+    // Returns: [rawXmean, rawYmean, rawZmean, linMagMin, linMagMax, linMagMean, ema]
     function getAccelStats() {
-        var mean = 0.0;
-        if (accelCount > 0) {
-            mean = accelSum / accelCount;
+        var xm = 0.0;
+        var ym = 0.0;
+        var zm = 0.0;
+        var lmean = 0.0;
+        if (sampleCount > 0) {
+            var sc = sampleCount.toFloat();
+            xm = rawXsum / sc;
+            ym = rawYsum / sc;
+            zm = rawZsum / sc;
+            lmean = linMagSum / sc;
         }
         emaSnapshot = emaValue;
-        var stats = [accelMin, accelMax, mean, emaSnapshot];
+        var stats = [xm, ym, zm, linMagMin, linMagMax, lmean, emaSnapshot];
         // Reset window
-        accelMin = 0.0;
-        accelMax = 0.0;
-        accelSum = 0.0;
-        accelCount = 0;
+        rawXsum = 0.0;
+        rawYsum = 0.0;
+        rawZsum = 0.0;
+        linMagMin = 0.0;
+        linMagMax = 0.0;
+        linMagSum = 0.0;
+        sampleCount = 0;
         return stats;
     }
 

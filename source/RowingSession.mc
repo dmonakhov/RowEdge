@@ -7,10 +7,15 @@ class RowingSession {
     var session = null;
     var strokeRateField = null;
     var dpsField = null;
-    var accelMinField = null;
-    var accelMaxField = null;
-    var accelMeanField = null;
-    var accelEmaField = null;
+    // Raw axes (1-second means)
+    var rawXfield = null;
+    var rawYfield = null;
+    var rawZfield = null;
+    // Linear accel magnitude stats
+    var linMagMinField = null;
+    var linMagMaxField = null;
+    var linMagMeanField = null;
+    var linMagEmaField = null;
 
     function initialize() {
     }
@@ -23,54 +28,55 @@ class RowingSession {
                 :name => "Outdoor Row"
             });
 
-            // Custom FIT fields for rowing-specific data
             strokeRateField = session.createField(
-                "stroke_rate",
-                0,
+                "stroke_rate", 0,
                 FitContributor.DATA_TYPE_UINT8,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD,
-                 :units => "spm"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "spm"}
             );
 
             dpsField = session.createField(
-                "distance_per_stroke",
-                1,
+                "distance_per_stroke", 1,
                 FitContributor.DATA_TYPE_FLOAT,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD,
-                 :units => "m"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"}
             );
 
-            // Raw accelerometer data for offline threshold analysis
-            accelMinField = session.createField(
-                "accel_y_min",
-                2,
+            // Raw accelerometer axes (1-sec mean, for orientation analysis)
+            rawXfield = session.createField(
+                "accel_raw_x", 2,
                 FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD,
-                 :units => "mG"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+            );
+            rawYfield = session.createField(
+                "accel_raw_y", 3,
+                FitContributor.DATA_TYPE_SINT16,
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+            );
+            rawZfield = session.createField(
+                "accel_raw_z", 4,
+                FitContributor.DATA_TYPE_SINT16,
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
             );
 
-            accelMaxField = session.createField(
-                "accel_y_max",
-                3,
+            // Gravity-subtracted linear accel magnitude (for threshold tuning)
+            linMagMinField = session.createField(
+                "lin_mag_min", 5,
                 FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD,
-                 :units => "mG"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
             );
-
-            accelMeanField = session.createField(
-                "accel_y_mean",
-                4,
+            linMagMaxField = session.createField(
+                "lin_mag_max", 6,
                 FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD,
-                 :units => "mG"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
             );
-
-            accelEmaField = session.createField(
-                "accel_y_ema",
-                5,
+            linMagMeanField = session.createField(
+                "lin_mag_mean", 7,
                 FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD,
-                 :units => "mG"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+            );
+            linMagEmaField = session.createField(
+                "lin_mag_ema", 8,
+                FitContributor.DATA_TYPE_SINT16,
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
             );
 
             session.start();
@@ -119,19 +125,14 @@ class RowingSession {
         }
     }
 
-    // Write 1-second accel statistics: [min, max, mean, ema]
+    // stats: [rawXmean, rawYmean, rawZmean, linMagMin, linMagMax, linMagMean, ema]
     function setAccelStats(stats) {
-        if (accelMinField != null) {
-            accelMinField.setData(stats[0].toNumber());
-        }
-        if (accelMaxField != null) {
-            accelMaxField.setData(stats[1].toNumber());
-        }
-        if (accelMeanField != null) {
-            accelMeanField.setData(stats[2].toNumber());
-        }
-        if (accelEmaField != null) {
-            accelEmaField.setData(stats[3].toNumber());
-        }
+        if (rawXfield != null) { rawXfield.setData(stats[0].toNumber()); }
+        if (rawYfield != null) { rawYfield.setData(stats[1].toNumber()); }
+        if (rawZfield != null) { rawZfield.setData(stats[2].toNumber()); }
+        if (linMagMinField != null) { linMagMinField.setData(stats[3].toNumber()); }
+        if (linMagMaxField != null) { linMagMaxField.setData(stats[4].toNumber()); }
+        if (linMagMeanField != null) { linMagMeanField.setData(stats[5].toNumber()); }
+        if (linMagEmaField != null) { linMagEmaField.setData(stats[6].toNumber()); }
     }
 }
