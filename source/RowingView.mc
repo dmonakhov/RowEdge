@@ -217,29 +217,24 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    // 4-field pages: FONT_TINY labels, FONT_NUMBER_MEDIUM values
+    // 3-field pages: FONT_SMALL labels, FONT_NUMBER_HOT values
+
     // Page 1: SPM | Split/500m | Distance | HR
     function drawPage1(dc, w, h) {
         var rowH = h / 4;
+        var lf = Graphics.FONT_TINY;
+        var vf = Graphics.FONT_NUMBER_MEDIUM;
         drawStatusBar(dc, w);
         drawDividers(dc, w, h, 4);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawWideCell(dc, 0, 0, w, rowH,
-                     "STROKE RATE (spm)", spmStr,
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
-
-        drawWideCell(dc, 0, rowH, w, rowH,
-                     "SPLIT / 500m", formatSplit(splitTime),
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
-
-        drawWideCell(dc, 0, rowH * 2, w, rowH,
-                     "DISTANCE", formatDistance(distance),
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+        drawWideCell(dc, 0, 0, w, rowH, "STROKE RATE", spmStr, lf, vf);
+        drawWideCell(dc, 0, rowH, w, rowH, "SPLIT /500m", formatSplit(splitTime), lf, vf);
+        drawWideCell(dc, 0, rowH * 2, w, rowH, "DISTANCE", formatDistance(distance), lf, vf);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawWideCell(dc, 0, rowH * 3, w, rowH,
-                     "HEART RATE (bpm)", hrStr,
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+        drawWideCell(dc, 0, rowH * 3, w, rowH, "HEART RATE", hrStr, lf, vf);
 
         drawPageIndicator(dc, w, h, 0);
     }
@@ -247,49 +242,36 @@ class RowingView extends WatchUi.View {
     // Page 2: SPM | Distance | HR | Time of Day
     function drawPage2(dc, w, h) {
         var rowH = h / 4;
+        var lf = Graphics.FONT_TINY;
+        var vf = Graphics.FONT_NUMBER_MEDIUM;
         drawStatusBar(dc, w);
         drawDividers(dc, w, h, 4);
 
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawWideCell(dc, 0, 0, w, rowH,
-                     "STROKE RATE (spm)", spmStr,
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
-
-        drawWideCell(dc, 0, rowH, w, rowH,
-                     "DISTANCE", formatDistance(distance),
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+        drawWideCell(dc, 0, 0, w, rowH, "STROKE RATE", spmStr, lf, vf);
+        drawWideCell(dc, 0, rowH, w, rowH, "DISTANCE", formatDistance(distance), lf, vf);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawWideCell(dc, 0, rowH * 2, w, rowH,
-                     "HEART RATE (bpm)", hrStr,
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+        drawWideCell(dc, 0, rowH * 2, w, rowH, "HEART RATE", hrStr, lf, vf);
 
         var clockInfo = System.getClockTime();
         var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
-        drawWideCell(dc, 0, rowH * 3, w, rowH,
-                     "TIME OF DAY", timeStr,
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+        drawWideCell(dc, 0, rowH * 3, w, rowH, "TIME OF DAY", timeStr, lf, vf);
 
         drawPageIndicator(dc, w, h, 1);
     }
 
-    // Page 3: Calibration -- Strokes | AVG accel | MAX accel
+    // Page 3: Calibration -- 3 fields, larger fonts
     function drawPageCalibration(dc, w, h) {
         var rowH = h / 3;
+        var lf = Graphics.FONT_SMALL;
+        var vf = Graphics.FONT_NUMBER_HOT;
         drawStatusBar(dc, w);
         drawDividers(dc, w, h, 3);
 
-        drawWideCell(dc, 0, 0, w, rowH,
-                     "STROKES", strokeCount.format("%d"),
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
-
-        drawWideCell(dc, 0, rowH, w, rowH,
-                     "AVG ACCEL (mG)", lastLinMagMean.format("%.0f"),
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
-
-        drawWideCell(dc, 0, rowH * 2, w, rowH,
-                     "MAX ACCEL (mG)", lastLinMagMax.format("%.0f"),
-                     Graphics.FONT_XTINY, Graphics.FONT_NUMBER_MILD);
+        drawWideCell(dc, 0, 0, w, rowH, "STROKES", strokeCount.format("%d"), lf, vf);
+        drawWideCell(dc, 0, rowH, w, rowH, "AVG ACCEL mG", lastLinMagMean.format("%.0f"), lf, vf);
+        drawWideCell(dc, 0, rowH * 2, w, rowH, "MAX ACCEL mG", lastLinMagMax.format("%.0f"), lf, vf);
 
         drawPageIndicator(dc, w, h, 2);
     }
