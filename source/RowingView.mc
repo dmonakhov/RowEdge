@@ -45,9 +45,9 @@ class RowingView extends WatchUi.View {
     // Update timer
     var updateTimer = null;
 
-    // Custom vector fonts (larger than built-in NUMBER_THAI_HOT)
-    var bigNumFont = null;   // for 2x height cells (~40px)
-    var smallNumFont = null; // for 1x height cells (~22px)
+    // Custom bitmap fonts (larger than built-in NUMBER_THAI_HOT)
+    var bigNumFont = null;   // 60px for 2x height cells
+    var smallNumFont = null; // 24px for 1x height cells
 
     function initialize() {
         View.initialize();
@@ -59,20 +59,9 @@ class RowingView extends WatchUi.View {
     function onShow() {
         setControlBar(null);
 
-        // Scale built-in fonts via getVectorFont(:font + :scale)
-        // THAI_HOT * 1.33 for tall cells, MILD * 1.0 for short cells
-        if (Graphics has :getVectorFont) {
-            bigNumFont = Graphics.getVectorFont({
-                :font => Graphics.FONT_NUMBER_THAI_HOT,
-                :scale => 1.33
-            });
-            smallNumFont = Graphics.getVectorFont({
-                :font => Graphics.FONT_NUMBER_MILD,
-                :scale => 1.0
-            });
-        }
-        if (bigNumFont == null) { bigNumFont = Graphics.FONT_NUMBER_THAI_HOT; }
-        if (smallNumFont == null) { smallNumFont = Graphics.FONT_NUMBER_MILD; }
+        // Load custom bitmap fonts (60px and 24px RobotoCondensed-Bold)
+        bigNumFont = WatchUi.loadResource(Rez.Fonts.id_font_big_num);
+        smallNumFont = WatchUi.loadResource(Rez.Fonts.id_font_small_num);
 
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
         updateTimer = new Timer.Timer();
