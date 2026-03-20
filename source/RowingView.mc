@@ -142,6 +142,7 @@ class RowingView extends WatchUi.View {
         if (session != null) {
             session.setStrokeRate(strokeRate.toNumber());
             session.setDPS(dps);
+            session.setAccelStats(detector.getAccelStats());
         }
     }
 

@@ -32,6 +32,13 @@ class StrokeDetector {
     var wasNegative = false;
     var running = false;
 
+    // 1-second accel statistics for FIT recording
+    var accelMin = 0.0;    // min raw Y in current window
+    var accelMax = 0.0;    // max raw Y in current window
+    var accelSum = 0.0;    // sum for mean calculation
+    var accelCount = 0;    // sample count in current window
+    var emaSnapshot = 0.0; // EMA value at end of window
+
     // Tuning: adjustable at runtime via menu
     var catchThreshold = -80.0; // milliG, minimum dip to count as stroke
 
@@ -105,6 +112,17 @@ class StrokeDetector {
         for (var i = 0; i < yData.size(); i++) {
             var sample = yData[i].toFloat();
 
+            // Track raw accel statistics for FIT recording
+            if (accelCount == 0) {
+                accelMin = sample;
+                accelMax = sample;
+            } else {
+                if (sample < accelMin) { accelMin = sample; }
+                if (sample > accelMax) { accelMax = sample; }
+            }
+            accelSum += sample;
+            accelCount++;
+
             // Exponential moving average
             emaValue = EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * emaValue;
 
@@ -131,6 +149,22 @@ class StrokeDetector {
             wasNegative = isNegative;
             prevEma = emaValue;
         }
+    }
+
+    // Called once per second by RowingView to snapshot and reset the window
+    function getAccelStats() {
+        var mean = 0.0;
+        if (accelCount > 0) {
+            mean = accelSum / accelCount;
+        }
+        emaSnapshot = emaValue;
+        var stats = [accelMin, accelMax, mean, emaSnapshot];
+        // Reset window
+        accelMin = 0.0;
+        accelMax = 0.0;
+        accelSum = 0.0;
+        accelCount = 0;
+        return stats;
     }
 
     function recordInterval(interval) {
