@@ -59,13 +59,18 @@ class RowingView extends WatchUi.View {
     function onShow() {
         setControlBar(null);
 
-        // Create vector fonts: Garmin_Roboto_Bold at custom pixel sizes
-        // Built-in numberThaiHot = 42px. We go to 56px for tall cells (+33%)
-        // Built-in numberHot = 34px. We use 22px for short cells
-        var faces = ["RobotoCondensedBold", "Garmin_Roboto_Bold"];
-        bigNumFont = Graphics.getVectorFont({:face => faces, :size => 56});
-        smallNumFont = Graphics.getVectorFont({:face => faces, :size => 22});
-        // Fallback if vector fonts not supported
+        // Scale built-in fonts via getVectorFont(:font + :scale)
+        // THAI_HOT * 1.33 for tall cells, MILD * 1.0 for short cells
+        if (Graphics has :getVectorFont) {
+            bigNumFont = Graphics.getVectorFont({
+                :font => Graphics.FONT_NUMBER_THAI_HOT,
+                :scale => 1.33
+            });
+            smallNumFont = Graphics.getVectorFont({
+                :font => Graphics.FONT_NUMBER_MILD,
+                :scale => 1.0
+            });
+        }
         if (bigNumFont == null) { bigNumFont = Graphics.FONT_NUMBER_THAI_HOT; }
         if (smallNumFont == null) { smallNumFont = Graphics.FONT_NUMBER_MILD; }
 
