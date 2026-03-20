@@ -95,17 +95,11 @@ class StrokeDetector {
         var yData = accelData.y;
         if (yData == null) { return; }
 
-        var timestamps = accelData.timestamp;
         var now = System.getTimer(); // ms monotonic clock
 
         for (var i = 0; i < yData.size(); i++) {
             var sample = yData[i].toFloat();
-            var sampleTime;
-            if (timestamps != null && i < timestamps.size()) {
-                sampleTime = timestamps[i];
-            } else {
-                sampleTime = now;
-            }
+            var sampleTime = now;
 
             // Exponential moving average
             emaValue = EMA_ALPHA * sample + (1.0 - EMA_ALPHA) * emaValue;

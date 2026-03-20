@@ -56,7 +56,7 @@ class RowingView extends WatchUi.View {
     }
 
     function onHide() {
-        Position.enableLocationEvents(Position.LOCATION_DISABLE, null);
+        Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
         if (updateTimer != null) {
             updateTimer.stop();
             updateTimer = null;
