@@ -1,0 +1,16 @@
+<strings>
+    <string id="AppName">RowEdge</string>
+    <string id="Split">SPLIT/500m</string>
+    <string id="StrokeRate">SPM</string>
+    <string id="Distance">DIST</string>
+    <string id="Time">TIME</string>
+    <string id="DPS">DPS</string>
+    <string id="HR">HR</string>
+    <string id="AvgSplit">AVG SPLIT</string>
+    <string id="Strokes">STROKES</string>
+    <string id="Speed">SPEED</string>
+    <string id="Paused">PAUSED</string>
+    <string id="PressStart">PRESS START</string>
+    <string id="Saving">SAVING...</string>
+    <string id="Radar">RADAR</string>
+</strings>
