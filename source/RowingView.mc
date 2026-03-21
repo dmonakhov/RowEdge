@@ -15,7 +15,7 @@ class RowingView extends WatchUi.View {
 
     var state = STATE_IDLE;
     var currentPage = 0;
-    const NUM_PAGES = 4; // page0=4C, page1=4C, page2=5C, page3=calibration
+    const NUM_PAGES = 3; // page0=4C, page1=5C, page2=calibration
 
     // Displayed metrics
     var splitTime = 0.0;    // seconds per 500m
@@ -202,10 +202,8 @@ class RowingView extends WatchUi.View {
         if (state == STATE_IDLE) {
             drawIdleScreen(dc, w, h);
         } else if (currentPage == 0) {
-            drawPage4C_1(dc, w, h);
+            drawPage4C(dc, w, h);
         } else if (currentPage == 1) {
-            drawPage4C_2(dc, w, h);
-        } else if (currentPage == 2) {
             drawPage5C(dc, w, h);
         } else {
             drawPageCalibration(dc, w, h);
@@ -228,11 +226,8 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Fonts: vector bigNumFont (56px) for 2x cells, vector smallNumFont (22px) for 1x cells
-    // Proportions: original 2/5 tall, 1/5 short
-
-    // Page 1 (4-C): SPM | Split/500m | Distance + HR
-    function drawPage4C_1(dc, w, h) {
+    // Page 1 (4-C): Split/500m | SPM | HR + Distance
+    function drawPage4C(dc, w, h) {
         var tallH = h * 2 / 5;
         var shortH = h / 5;
         var lf = Graphics.FONT_XTINY;
@@ -243,44 +238,19 @@ class RowingView extends WatchUi.View {
         dc.drawLine(0, tallH * 2, w, tallH * 2);
         dc.drawLine(w / 2, tallH * 2, w / 2, h);
 
+        drawCell(dc, 0, 0, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigNumFont);
+
         var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigNumFont);
-        drawCell(dc, 0, tallH, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigNumFont);
-        drawCell(dc, 0, tallH * 2, w / 2, shortH, "DISTANCE", formatDistance(distance), lf, smallNumFont);
+        drawCell(dc, 0, tallH, w, tallH, "STROKE RATE", spmStr, lf, bigNumFont);
 
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smallNumFont);
+        drawCell(dc, 0, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smallNumFont);
+        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "DISTANCE", formatDistance(distance), lf, smallNumFont);
 
         drawPageIndicator(dc, w, h, 0);
     }
 
-    // Page 2 (4-C): SPM | Distance | HR + Time
-    function drawPage4C_2(dc, w, h) {
-        var tallH = h * 2 / 5;
-        var shortH = h / 5;
-        var lf = Graphics.FONT_XTINY;
-        drawStatusBar(dc, w);
-
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(0, tallH, w, tallH);
-        dc.drawLine(0, tallH * 2, w, tallH * 2);
-        dc.drawLine(w / 2, tallH * 2, w / 2, h);
-
-        var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawCell(dc, 0, 0, w, tallH, "STROKE RATE", spmStr, lf, bigNumFont);
-        drawCell(dc, 0, tallH, w, tallH, "DISTANCE", formatDistance(distance), lf, bigNumFont);
-
-        var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, 0, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smallNumFont);
-
-        var clockInfo = System.getClockTime();
-        var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
-        drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "TIME", timeStr, lf, smallNumFont);
-
-        drawPageIndicator(dc, w, h, 1);
-    }
-
-    // Page 3 (5-C): SPM | Split/500m | HR | Distance + Time
+    // Page 2 (5-C): SPM | Split/500m | HR | Distance + Time
     function drawPage5C(dc, w, h) {
         var u = h / 5;
         var lf = Graphics.FONT_XTINY;
@@ -306,10 +276,10 @@ class RowingView extends WatchUi.View {
         var timeStr = clockInfo.hour.format("%d") + ":" + clockInfo.min.format("%02d");
         drawCell(dc, w / 2, u * 4, w / 2, u, "TIME", timeStr, lf, smallNumFont);
 
-        drawPageIndicator(dc, w, h, 2);
+        drawPageIndicator(dc, w, h, 1);
     }
 
-    // Page 4: Calibration -- 3 equal rows
+    // Page 3: Calibration -- 3 equal rows
     function drawPageCalibration(dc, w, h) {
         var rowH = h / 3;
         var lf = Graphics.FONT_XTINY;
@@ -323,7 +293,7 @@ class RowingView extends WatchUi.View {
         drawCell(dc, 0, rowH, w, rowH, "AVG ACCEL mG", lastLinMagMean.format("%.0f"), lf, bigNumFont);
         drawCell(dc, 0, rowH * 2, w, rowH, "MAX ACCEL mG", lastLinMagMax.format("%.0f"), lf, bigNumFont);
 
-        drawPageIndicator(dc, w, h, 3);
+        drawPageIndicator(dc, w, h, 2);
     }
 
     // Recording indicator
