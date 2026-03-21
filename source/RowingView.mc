@@ -184,17 +184,21 @@ class RowingView extends WatchUi.View {
     }
 
     function drawIdleScreen(dc, w, h) {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h / 2 - 20, Graphics.FONT_MEDIUM, "Press START",
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        // Draw home screen image (full screen, pre-sized for Edge 540)
+        var img = WatchUi.loadResource(Rez.Drawables.HomeScreen);
+        dc.drawBitmap(0, 0, img);
 
+        // Overlay status info in blank area (y=46..123 in edge540.png)
         var app = Application.getApp();
         var thr = app.strokeDetector.catchThreshold;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h / 2 + 20, Graphics.FONT_SMALL,
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, 48, Graphics.FONT_MEDIUM,
                     "Thr: " + thr.format("%.0f") + " mG",
                     Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, h / 2 + 50, Graphics.FONT_XTINY,
+        dc.drawText(w / 2, 78, Graphics.FONT_SMALL,
+                    "START to row",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, 100, Graphics.FONT_SMALL,
                     "MENU to configure",
                     Graphics.TEXT_JUSTIFY_CENTER);
     }

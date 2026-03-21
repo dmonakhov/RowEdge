@@ -1,5 +1,9 @@
 # RowEdge - Outdoor Rowing App for Garmin Edge
 
+<p align="center">
+  <img src="images/RoundBage.png" width="200" alt="RowEdge Logo"/>
+</p>
+
 An open-source Connect IQ app that turns Garmin Edge cycling computers into
 outdoor rowing performance computers.
 
