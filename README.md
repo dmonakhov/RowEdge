@@ -107,4 +107,4 @@ Press MENU to access settings:
 
 ## License
 
-Open source. See LICENSE file.
+GPLv3. See LICENSE file.
