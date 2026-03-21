@@ -226,7 +226,7 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Page 1 (4-C): Split/500m | SPM | HR + Distance
+    // Page 1 (4-C): Split/500m | HR | SPM + Distance
     function drawPage4C(dc, w, h) {
         var tallH = h * 2 / 5;
         var shortH = h / 5;
@@ -240,11 +240,11 @@ class RowingView extends WatchUi.View {
 
         drawCell(dc, 0, 0, w, tallH, "SPLIT /500m", formatSplit(splitTime), lf, bigNumFont);
 
-        var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
-        drawCell(dc, 0, tallH, w, tallH, "STROKE RATE", spmStr, lf, bigNumFont);
-
         var hrStr = heartRate > 0 ? heartRate.format("%d") : "--";
-        drawCell(dc, 0, tallH * 2, w / 2, shortH, "HR", hrStr, lf, smallNumFont);
+        drawCell(dc, 0, tallH, w, tallH, "HR", hrStr, lf, bigNumFont);
+
+        var spmStr = strokeRate > 0 ? strokeRate.format("%.0f") : "--";
+        drawCell(dc, 0, tallH * 2, w / 2, shortH, "SPM", spmStr, lf, smallNumFont);
         drawCell(dc, w / 2, tallH * 2, w / 2, shortH, "DISTANCE", formatDistance(distance), lf, smallNumFont);
 
         drawPageIndicator(dc, w, h, 0);

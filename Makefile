@@ -11,7 +11,7 @@ JUNGLE := monkey.jungle
 # Font generation
 TTF := $(HOME)/.Garmin/ConnectIQ/Fonts/RobotoCondensed-Bold.ttf
 BIG_NUM_SIZE := 80
-SMALL_NUM_SIZE := 24
+SMALL_NUM_SIZE := 28
 FONT_DIR := resources/fonts
 
 SOURCES := $(wildcard source/*.mc)
