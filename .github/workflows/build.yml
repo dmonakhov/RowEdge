@@ -1,0 +1,158 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  CIQ_SDK_VERSION: "9.1.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device: [edge540]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Pillow (for font generation)
+        run: pip install Pillow
+
+      - name: Install Connect IQ SDK Manager
+        run: |
+          curl -sL https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Setup Connect IQ SDK
+        env:
+          GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          CIQ_AGREEMENT_HASH: ${{ secrets.CIQ_AGREEMENT_HASH }}
+        run: |
+          connect-iq-sdk-manager agreement accept --acceptance-hash=$CIQ_AGREEMENT_HASH
+          connect-iq-sdk-manager login
+          connect-iq-sdk-manager sdk set $CIQ_SDK_VERSION
+          echo "$(connect-iq-sdk-manager sdk current-path --bin)" >> $GITHUB_PATH
+          connect-iq-sdk-manager device download --manifest=manifest.xml
+
+      - name: Generate developer key
+        run: openssl genrsa -out /tmp/developer_key.pem 4096
+
+      - name: Generate fonts
+        run: |
+          SDK_FONTS="$(connect-iq-sdk-manager sdk current-path)/Fonts"
+          TTF="${SDK_FONTS}/RobotoCondensed-Bold.ttf"
+          # Fallback: check system fonts
+          if [ ! -f "$TTF" ]; then
+            TTF="$(find $(connect-iq-sdk-manager sdk current-path) -name 'RobotoCondensed-Bold.ttf' 2>/dev/null | head -1)"
+          fi
+          if [ ! -f "$TTF" ]; then
+            echo "RobotoCondensed-Bold.ttf not found in SDK, using DejaVu fallback"
+            TTF="/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"
+          fi
+          echo "Using font: $TTF"
+          python3 tools/gen_font.py "$TTF" 80 resources/fonts/font_a
+          python3 tools/gen_font.py "$TTF" 55 resources/fonts/font_b
+          python3 tools/gen_font.py "$TTF" 38 resources/fonts/font_c
+          python3 tools/gen_font.py "$TTF" 26 resources/fonts/font_d
+
+      - name: Build for ${{ matrix.device }}
+        run: |
+          mkdir -p build
+          monkeyc \
+            -d ${{ matrix.device }} \
+            -f monkey.jungle \
+            -o build/RowEdge-${{ matrix.device }}.prg \
+            -y /tmp/developer_key.pem \
+            -w
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RowEdge-${{ matrix.device }}
+          path: build/RowEdge-${{ matrix.device }}.prg
+
+  # Export build for all devices (single .iq file for store upload)
+  export:
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Pillow
+        run: pip install Pillow
+
+      - name: Install Connect IQ SDK Manager
+        run: |
+          curl -sL https://raw.githubusercontent.com/lindell/connect-iq-sdk-manager-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Setup Connect IQ SDK
+        env:
+          GARMIN_USERNAME: ${{ secrets.GARMIN_USERNAME }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+          CIQ_AGREEMENT_HASH: ${{ secrets.CIQ_AGREEMENT_HASH }}
+        run: |
+          connect-iq-sdk-manager agreement accept --acceptance-hash=$CIQ_AGREEMENT_HASH
+          connect-iq-sdk-manager login
+          connect-iq-sdk-manager sdk set $CIQ_SDK_VERSION
+          echo "$(connect-iq-sdk-manager sdk current-path --bin)" >> $GITHUB_PATH
+          connect-iq-sdk-manager device download --manifest=manifest.xml
+
+      - name: Generate developer key
+        run: openssl genrsa -out /tmp/developer_key.pem 4096
+
+      - name: Generate fonts
+        run: |
+          TTF="$(find $(connect-iq-sdk-manager sdk current-path) -name 'RobotoCondensed-Bold.ttf' 2>/dev/null | head -1)"
+          if [ ! -f "$TTF" ]; then
+            TTF="/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf"
+          fi
+          python3 tools/gen_font.py "$TTF" 80 resources/fonts/font_a
+          python3 tools/gen_font.py "$TTF" 55 resources/fonts/font_b
+          python3 tools/gen_font.py "$TTF" 38 resources/fonts/font_c
+          python3 tools/gen_font.py "$TTF" 26 resources/fonts/font_d
+
+      - name: Export for all devices
+        run: |
+          mkdir -p build
+          monkeyc \
+            -f monkey.jungle \
+            -e \
+            -o build/RowEdge.iq \
+            -y /tmp/developer_key.pem \
+            -w
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/RowEdge.iq
+          generate_release_notes: true

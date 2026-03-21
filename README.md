@@ -30,43 +30,43 @@ features specific to the sport.
 
 ## Available Data Fields
 
-| Field | Source |
-|-------|--------|
-| Split /500m | GPS |
-| Stroke Rate (SPM) | Accelerometer |
-| Heart Rate | ANT+ sensor |
-| Distance | GPS |
-| Elapsed Time | Timer |
-| Time of Day | System clock |
-| Meters/Stroke | GPS + accel |
-| Stroke Count | Accelerometer |
-| Speed | GPS |
-| Avg Split | Calculated |
-| Avg/Max Accel | Accelerometer (calibration) |
+| Field             | Source                      |
+|-------------------|-----------------------------|
+| Split /500m       | GPS                         |
+| Stroke Rate (SPM) | Accelerometer               |
+| Heart Rate        | ANT+ sensor                 |
+| Distance          | GPS                         |
+| Elapsed Time      | Timer                       |
+| Time of Day       | System clock                |
+| Meters/Stroke     | GPS + accel                 |
+| Stroke Count      | Accelerometer               |
+| Speed             | GPS                         |
+| Avg Split         | Calculated                  |
+| Avg/Max Accel     | Accelerometer (calibration) |
 
 ## Zoom Levels
 
 Wahoo-style zoom matching real ELEMNT behavior:
 
-| Zoom | Fields | Layout |
-|------|--------|--------|
-| z1 | 1 | Full screen |
-| z2 | 2 | Hero + 1 row |
-| z3 | 3 | Hero 40% + 2 rows 30% |
-| z4 | 5 | Hero + 2x2 grid |
-| z5 | 7 | Hero + 2x3 grid |
-| z6 | 9 | Hero + 2x4 grid |
-| z7 | 11 | Hero + 2x5 grid |
+| Zoom | Fields | Layout                |
+|------|--------|-----------------------|
+| z1   | 1      | Full screen           |
+| z2   | 2      | Hero + 1 row          |
+| z3   | 3      | Hero 40% + 2 rows 30% |
+| z4   | 5      | Hero + 2x2 grid       |
+| z5   | 7      | Hero + 2x3 grid       |
+| z6   | 9      | Hero + 2x4 grid       |
+| z7   | 11     | Hero + 2x5 grid       |
 
 ## Button Mapping
 
-| Button | Idle | Recording | Paused |
-|--------|------|-----------|--------|
-| ENTER | Start (calibrate) | Pause | Resume |
-| BACK | Exit app | Lap | Save/Discard |
-| UP | - | Zoom in | Zoom in |
-| DOWN | - | Zoom out | Zoom out |
-| MENU | Settings | Settings | Settings |
+| Button | Idle              | Recording | Paused       |
+|--------|-------------------|-----------|--------------|
+| ENTER  | Start (calibrate) | Pause     | Resume       |
+| BACK   | Exit app          | Lap       | Save/Discard |
+| UP     | -                 | Zoom in   | Zoom in      |
+| DOWN   | -                 | Zoom out  | Zoom out     |
+| MENU   | Settings          | Settings  | Settings     |
 
 ## Build
 
