@@ -31,7 +31,7 @@ build: $(OUT)
 
 $(OUT): $(SOURCES) $(RESOURCES) $(JUNGLE) manifest.xml
 	@mkdir -p bin
-	$(MONKEYC) -d $(DEVICE) -f $(JUNGLE) -o $(OUT) -y $(DEV_KEY) -w
+	$(MONKEYC) -d $(DEVICE) -f $(JUNGLE) -o $(OUT) -y $(DEV_KEY)
 
 fonts:
 	python3 tools/gen_font.py $(TTF) $(FA_SIZE) $(FONT_DIR)/font_a
