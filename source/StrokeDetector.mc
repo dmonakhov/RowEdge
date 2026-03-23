@@ -30,9 +30,9 @@ class StrokeDetector {
     var strokeRate = 0.0;
     var lastStrokeTime = 0;
 
-    // 30-second sliding window of stroke timestamps (ms)
-    const WINDOW_MS = 30000;
-    var strokeTimes = new [20];
+    // Circular buffer of last N stroke timestamps for SPM calculation
+    const SPM_WINDOW = 6;  // average over last 6 strokes
+    var strokeTimes = new [10];
     var strokeTimesIdx = 0;
     var strokeTimesCount = 0;
 
@@ -49,12 +49,12 @@ class StrokeDetector {
     var running = false;
 
     // Tuning: adjustable at runtime via menu
-    var catchThreshold = 900.0;
+    var catchThreshold = 200.0;
 
     // Fixed constants
     const EMA_ALPHA = 0.15;
     const MIN_STROKE_INTERVAL = 1700; // ms, max 35 spm
-    const MAX_STROKE_INTERVAL = 6000; // ms, min 10 spm
+    const MAX_STROKE_INTERVAL = 15000; // ms, min 4 spm
 
     // 1-second statistics for FIT recording
     var rawXsum = 0.0;
@@ -287,15 +287,32 @@ class StrokeDetector {
     }
 
     function computeStrokeRate(now) {
-        if (strokeTimesCount == 0) { return 0.0; }
-        var cutoff = now - WINDOW_MS;
-        var count = 0;
-        for (var i = 0; i < strokeTimesCount; i++) {
-            if (strokeTimes[i] >= cutoff) {
-                count++;
-            }
-        }
-        if (count < 2) { return 0.0; }
-        return count * 60000.0 / WINDOW_MS;
+        if (strokeTimesCount < 2) { return 0.0; }
+
+        // Average interval from last N strokes
+        var count = strokeTimesCount < SPM_WINDOW ? strokeTimesCount : SPM_WINDOW;
+        var newestIdx = (strokeTimesIdx - 1 + strokeTimes.size()) % strokeTimes.size();
+        var oldestIdx = (strokeTimesIdx - count + strokeTimes.size()) % strokeTimes.size();
+
+        var newest = strokeTimes[newestIdx];
+        var oldest = strokeTimes[oldestIdx];
+        var span = newest - oldest;
+        if (span <= 0) { return 0.0; }
+
+        var avgInterval = span.toFloat() / (count - 1);
+
+        // Estimate current stroke interval: time since last stroke,
+        // but at least avgInterval (don't speed up the estimate)
+        var sinceLast = (now - newest).toFloat();
+        var lastInterval = sinceLast > avgInterval ? sinceLast : avgInterval;
+
+        // If estimated interval exceeds max, no strokes happening
+        if (lastInterval > MAX_STROKE_INTERVAL) { return 0.0; }
+
+        // Normalized average: blend historical avg with current estimate
+        var normInterval = (avgInterval * (count - 1) + lastInterval) / count;
+
+        if (normInterval < MIN_STROKE_INTERVAL) { return 0.0; }
+        return 60000.0 / normInterval;
     }
 }
