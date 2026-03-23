@@ -20,22 +20,37 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() {
+        if (view.state == RowingView.STATE_SUMMARY) {
+            view.dismissSummary();
+            WatchUi.requestUpdate();
+            return true;
+        }
+
         var app = Application.getApp();
         var session = app.rowingSession;
 
         if (view.state == RowingView.STATE_IDLE) {
-            // Start calibration, then activity begins automatically
-            app.strokeDetector.startCalibration();
-            view.setState(RowingView.STATE_CALIBRATING);
+            if (app.featureConfig.isEnabled(FeatureConfig.FEAT_DEMO_MODE)) {
+                // Demo mode: skip calibration, no FIT recording
+                view.setState(RowingView.STATE_RECORDING);
+            } else {
+                // Normal: start calibration, then activity begins automatically
+                app.strokeDetector.startCalibration();
+                view.setState(RowingView.STATE_CALIBRATING);
+            }
         } else if (view.state == RowingView.STATE_RECORDING) {
             // Pause
             app.strokeDetector.stop();
             session.stop();
             view.setState(RowingView.STATE_PAUSED);
         } else if (view.state == RowingView.STATE_PAUSED) {
-            // Resume
+            // Resume (manual)
             session.resume();
             app.strokeDetector.start();
+            view.autoPaused = false;
+            view.autoPauseCooldown = 60;
+            view.distHistIdx = 0;
+            view.distHistCount = 0;
             view.setState(RowingView.STATE_RECORDING);
         }
         WatchUi.requestUpdate();
@@ -43,6 +58,12 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
+        if (view.state == RowingView.STATE_SUMMARY) {
+            view.dismissSummary();
+            WatchUi.requestUpdate();
+            return true;
+        }
+
         var app = Application.getApp();
 
         if (view.state == RowingView.STATE_RECORDING) {
@@ -101,14 +122,33 @@ class SaveConfirmDelegate extends WatchUi.ConfirmationDelegate {
     function onResponse(response) {
         var app = Application.getApp();
         if (response == WatchUi.CONFIRM_YES) {
+            // Capture metrics into summary BEFORE reset, then save
+            view.showSummary();
             app.rowingSession.save();
+            app.rowingSession = new RowingSession();
+            app.strokeDetector.reset();
         } else {
+            // Discard
             app.rowingSession.discard();
+            app.rowingSession = new RowingSession();
+            app.strokeDetector.reset();
+            view.reset();
+            view.setState(RowingView.STATE_IDLE);
         }
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    // Edge 540: BACK button may pop Confirmation without calling onResponse.
+    // Treat as discard.
+    function onBack() {
+        var app = Application.getApp();
+        app.rowingSession.discard();
         app.rowingSession = new RowingSession();
         app.strokeDetector.reset();
         view.reset();
         view.setState(RowingView.STATE_IDLE);
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
         WatchUi.requestUpdate();
         return true;
     }

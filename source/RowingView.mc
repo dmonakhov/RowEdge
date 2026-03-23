@@ -4,6 +4,7 @@ using Toybox.Position;
 using Toybox.System;
 using Toybox.Timer;
 using Toybox.Activity;
+using Toybox.Attention;
 
 class RowingView extends WatchUi.View {
 
@@ -11,7 +12,8 @@ class RowingView extends WatchUi.View {
         STATE_IDLE,
         STATE_CALIBRATING,
         STATE_RECORDING,
-        STATE_PAUSED
+        STATE_PAUSED,
+        STATE_SUMMARY
     }
 
     var state = STATE_IDLE;
@@ -36,10 +38,36 @@ class RowingView extends WatchUi.View {
     var lastLinMagMean = 0.0;
     var lastLinMagMax = 0.0;
 
-    // Split smoothing
-    var speedBuf = new [5];
-    var speedBufIdx = 0;
-    var speedBufCount = 0;
+    // Auto-pause state
+    var autoPaused = false;
+    var autoPauseCooldown = 0;     // seconds after resume before pause can re-trigger
+    var autoPauseHoldoff = 0;      // seconds after pause before resume can trigger
+    const AUTO_PAUSE_SPEED = 0.5;  // m/s
+    const AUTO_RESUME_SPEED = 0.7; // m/s (hysteresis)
+    const AUTO_PAUSE_COOLDOWN = 15;     // seconds grace after auto-resume
+    const AUTO_PAUSE_COOLDOWN_MAX = 60; // seconds grace after activity start or manual resume
+    const AUTO_PAUSE_HOLDOFF = 10;      // seconds minimum pause duration
+
+    // Demo mode state
+    var demoDistance = 0.0;
+    var demoTime = 0;
+
+    // Summary screen data (captured before reset)
+    var summaryDist = 0.0;
+    var summaryTime = 0;
+    var summaryStrokes = 0;
+    var summaryAvgSplit = 0.0;
+    var summaryAvgHR = 0;
+    var summaryTimer = null;
+
+    // Speed from distance sliding window (proper physics: v = dx/dt)
+    // Stores distance every second for last N seconds.
+    // Speed = (dist[now] - dist[now-N]) / N, updated every second.
+    const SPEED_WINDOW = 10; // seconds
+    var distHistory = new [10];
+    var distHistIdx = 0;
+    var distHistCount = 0;
+    var avgSpeed = 0.0;
 
     // Update timer
     var updateTimer = null;
@@ -56,9 +84,6 @@ class RowingView extends WatchUi.View {
 
     function initialize() {
         View.initialize();
-        for (var i = 0; i < speedBuf.size(); i++) {
-            speedBuf[i] = 0.0;
-        }
     }
 
     function onShow() {
@@ -83,43 +108,151 @@ class RowingView extends WatchUi.View {
 
     function setState(newState) { state = newState; }
 
+    // Capture current metrics into summary fields, then switch to summary state
+    function showSummary() {
+        summaryDist = distance;
+        summaryTime = elapsedTime;
+        summaryStrokes = strokeCount;
+        summaryAvgSplit = (distance > 0 && elapsedTime > 0) ?
+                          500.0 * elapsedTime / distance : 0.0;
+        var actInfo = Activity.getActivityInfo();
+        summaryAvgHR = (actInfo != null && actInfo.averageHeartRate != null) ?
+                       actInfo.averageHeartRate : 0;
+        state = STATE_SUMMARY;
+        summaryTimer = new Timer.Timer();
+        summaryTimer.start(method(:onSummaryDismiss), 10000, false);
+    }
+
+    function onSummaryDismiss() as Void {
+        dismissSummary();
+    }
+
+    function dismissSummary() {
+        if (summaryTimer != null) {
+            summaryTimer.stop();
+            summaryTimer = null;
+        }
+        reset();
+        state = STATE_IDLE;
+        WatchUi.requestUpdate();
+    }
+
     function onPosition(info as Position.Info) as Void {
         if (info.speed != null) {
             speed = info.speed;
-            addSpeedSample(speed);
         }
     }
 
-    function addSpeedSample(spd) {
-        speedBuf[speedBufIdx] = spd;
-        speedBufIdx = (speedBufIdx + 1) % speedBuf.size();
-        if (speedBufCount < speedBuf.size()) { speedBufCount++; }
-    }
+    // Record current distance, compute speed from oldest sample in window.
+    // Called every 1s from updateMetrics(). Updates avgSpeed every second.
+    function updateAvgSpeed() {
+        // Store current distance in circular buffer
+        distHistory[distHistIdx] = distance;
+        distHistIdx = (distHistIdx + 1) % SPEED_WINDOW;
+        if (distHistCount < SPEED_WINDOW) { distHistCount++; }
 
-    function getSmoothedSpeed() {
-        if (speedBufCount == 0) { return 0.0; }
-        var sum = 0.0;
-        for (var i = 0; i < speedBufCount; i++) { sum += speedBuf[i]; }
-        return sum / speedBufCount;
+        if (distHistCount < 2) {
+            avgSpeed = 0.0;
+            return;
+        }
+
+        // Oldest sample in the buffer
+        var oldIdx = (distHistIdx - distHistCount + SPEED_WINDOW) % SPEED_WINDOW;
+        var oldDist = distHistory[oldIdx];
+        var dt = distHistCount - 1; // seconds between oldest and newest
+        var delta = distance - oldDist;
+
+        avgSpeed = (dt > 0) ? delta / dt : 0.0;
     }
 
     function onTimer() as Void {
+        if (state == STATE_SUMMARY) {
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        var app = Application.getApp();
         if (state == STATE_CALIBRATING) {
-            var app = Application.getApp();
             if (app.strokeDetector.isCalibrationDone()) {
                 app.rowingSession.start();
                 state = STATE_RECORDING;
+                autoPauseCooldown = AUTO_PAUSE_COOLDOWN_MAX;
             }
         } else if (state == STATE_RECORDING || state == STATE_PAUSED) {
             updateMetrics();
+            checkAutoPause();
         }
         WatchUi.requestUpdate();
+    }
+
+    // Get current GPS speed by polling Position API directly.
+    // Works regardless of FIT session state (unlike onPosition callback
+    // which may stop in simulator when session is paused).
+    function getGpsSpeed() {
+        var posInfo = Position.getInfo();
+        if (posInfo != null && posInfo.speed != null) {
+            return posInfo.speed;
+        }
+        return 0.0;
+    }
+
+    function checkAutoPause() {
+        var app = Application.getApp();
+        if (!app.featureConfig.isEnabled(FeatureConfig.FEAT_AUTO_PAUSE) ||
+            app.featureConfig.isEnabled(FeatureConfig.FEAT_DEMO_MODE)) {
+            return;
+        }
+
+        if (state == STATE_RECORDING) {
+            // Cooldown after resume: don't pause until distance buffer has real data
+            if (autoPauseCooldown > 0) {
+                autoPauseCooldown--;
+                return;
+            }
+            if (avgSpeed < AUTO_PAUSE_SPEED) {
+                app.strokeDetector.stop();
+                app.rowingSession.stop();
+                state = STATE_PAUSED;
+                autoPaused = true;
+                autoPauseHoldoff = AUTO_PAUSE_HOLDOFF;
+                if (Attention has :playTone) {
+                    Attention.playTone(Attention.TONE_LAP);
+                }
+            }
+        } else if (state == STATE_PAUSED && autoPaused) {
+            // Wait minimum pause duration before checking resume
+            if (autoPauseHoldoff > 0) {
+                autoPauseHoldoff--;
+                return;
+            }
+            // Poll GPS directly for resume (FIT distance is frozen during pause)
+            var gpsSpeed = getGpsSpeed();
+            if (gpsSpeed > AUTO_RESUME_SPEED) {
+                // Reset distance history so avgSpeed starts fresh after resume
+                distHistIdx = 0;
+                distHistCount = 0;
+                autoPauseCooldown = AUTO_PAUSE_COOLDOWN;
+                app.rowingSession.resume();
+                app.strokeDetector.start();
+                state = STATE_RECORDING;
+                autoPaused = false;
+                if (Attention has :playTone) {
+                    Attention.playTone(Attention.TONE_LAP);
+                }
+            }
+        }
     }
 
     function updateMetrics() {
         var app = Application.getApp();
         var detector = app.strokeDetector;
         var session = app.rowingSession;
+        var isDemo = app.featureConfig.isEnabled(FeatureConfig.FEAT_DEMO_MODE);
+
+        if (isDemo) {
+            applyDemoData();
+            return;
+        }
 
         detector.refreshStrokeRate();
         strokeRate = detector.strokeRate;
@@ -132,8 +265,11 @@ class RowingView extends WatchUi.View {
             if (actInfo.currentHeartRate != null) { heartRate = actInfo.currentHeartRate; }
         }
 
-        var smoothSpeed = getSmoothedSpeed();
-        splitTime = smoothSpeed > 0.3 ? 500.0 / smoothSpeed : 0.0;
+        // Only update distance-based speed while recording (FIT distance freezes during pause)
+        if (state == STATE_RECORDING) {
+            updateAvgSpeed();
+        }
+        splitTime = avgSpeed > 0.3 ? 500.0 / avgSpeed : 0.0;
 
         lapDistance = distance - lapStartDist;
         lapStrokes = strokeCount - lapStartStrokes;
@@ -149,6 +285,20 @@ class RowingView extends WatchUi.View {
         }
     }
 
+    function applyDemoData() {
+        if (state == STATE_RECORDING) {
+            demoTime++;
+            demoDistance += 4.545;  // 500m / 110s = 4.545 m/s
+        }
+        splitTime = 110.0;       // 1:50 /500m
+        strokeRate = 25.0;
+        heartRate = 140;
+        distance = demoDistance;
+        elapsedTime = demoTime;
+        strokeCount = (demoTime * 25.0 / 60.0).toNumber();
+        dps = 4.545 * 60.0 / 25.0;  // ~10.9 m/stroke
+    }
+
     function onLap() {
         lapStartDist = distance;
         lapStartStrokes = strokeCount;
@@ -160,7 +310,10 @@ class RowingView extends WatchUi.View {
         dps = 0.0; heartRate = 0;
         lapDistance = 0.0; lapStrokes = 0;
         lapStartDist = 0.0; lapStartStrokes = 0;
-        speedBufIdx = 0; speedBufCount = 0;
+        distHistIdx = 0; distHistCount = 0; avgSpeed = 0.0;
+        for (var i = 0; i < SPEED_WINDOW; i++) { distHistory[i] = 0.0; }
+        autoPaused = false; autoPauseCooldown = 0; autoPauseHoldoff = 0;
+        demoDistance = 0.0; demoTime = 0;
     }
 
     //
@@ -178,6 +331,10 @@ class RowingView extends WatchUi.View {
             drawIdleScreen(dc, w, h);
         } else if (state == STATE_CALIBRATING) {
             drawCalibratingScreen(dc, w, h);
+        } else if (state == STATE_PAUSED) {
+            drawPausedScreen(dc, w, h);
+        } else if (state == STATE_SUMMARY) {
+            drawSummaryScreen(dc, w, h);
         } else {
             drawDataScreen(dc, w, h);
         }
@@ -212,6 +369,90 @@ class RowingView extends WatchUi.View {
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
+    function drawPausedScreen(dc, w, h) {
+        var rowH = h / 6;
+        var valX = w - 8;
+
+        // Header
+        dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, 4, Graphics.FONT_MEDIUM, "Activity Paused",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Data rows using fontC for values
+        var y = rowH;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(8, y, Graphics.FONT_SMALL, "Distance", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(valX, y, fontC, formatDistance(distance), Graphics.TEXT_JUSTIFY_RIGHT);
+
+        y += rowH;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(8, y, Graphics.FONT_SMALL, "Total Time", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(valX, y, fontC, formatTime(elapsedTime), Graphics.TEXT_JUSTIFY_RIGHT);
+
+        y += rowH;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(8, y, Graphics.FONT_SMALL, "AVG Split", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        var avgSplit = (elapsedTime > 0 && distance > 0) ?
+                       formatSplit(500.0 * elapsedTime / distance) : "--:--";
+        dc.drawText(valX, y, fontC, avgSplit, Graphics.TEXT_JUSTIFY_RIGHT);
+
+        y += rowH;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(8, y, Graphics.FONT_SMALL, "Time of Day", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        var ci = System.getClockTime();
+        dc.drawText(valX, y, fontC,
+                    ci.hour.format("%d") + ":" + ci.min.format("%02d"),
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+
+        // Bottom hint
+        y += rowH;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, y + 5, Graphics.FONT_XTINY,
+                    "START: resume  BACK: stop",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function drawSummaryScreen(dc, w, h) {
+        var rowH = h / 7;
+
+        // Header
+        dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, 4, Graphics.FONT_MEDIUM, "Activity Saved",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Data rows: label left, value right, both using fontC
+        var y = rowH;
+        var valX = w - 8;
+
+        drawSummaryRow(dc, y, valX, "Distance", formatDistance(summaryDist));
+        y += rowH;
+        drawSummaryRow(dc, y, valX, "Total Time", formatTime(summaryTime));
+        y += rowH;
+        drawSummaryRow(dc, y, valX, "Strokes", summaryStrokes.format("%d"));
+        y += rowH;
+        drawSummaryRow(dc, y, valX, "AVG Split", formatSplit(summaryAvgSplit));
+        y += rowH;
+        drawSummaryRow(dc, y, valX, "AVG HR", summaryAvgHR > 0 ? summaryAvgHR.format("%d") : "--");
+
+        // Bottom hint
+        y += rowH;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, y, Graphics.FONT_XTINY,
+                    "Press any button to dismiss",
+                    Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function drawSummaryRow(dc, y, valX, label, value) {
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(8, y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(valX, y, fontC, value, Graphics.TEXT_JUSTIFY_RIGHT);
+    }
+
     // Dynamic data screen: renders visible fields from FieldConfig
     function drawDataScreen(dc, w, h) {
         drawStatusBar(dc, w);
@@ -228,14 +469,15 @@ class RowingView extends WatchUi.View {
         // Draw dividers
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         for (var i = 0; i < cells.size(); i++) {
-            var c = cells[i];
-            // Right edge (vertical divider) if not full width
-            if (c[0] + c[2] < w) {
-                dc.drawLine(c[0] + c[2], c[1], c[0] + c[2], c[1] + c[3]);
+            var cx = cells[i][0];
+            var cy = cells[i][1];
+            var cw = cells[i][2];
+            var ch = cells[i][3];
+            if (cx + cw < w) {
+                dc.drawLine(cx + cw, cy, cx + cw, cy + ch);
             }
-            // Bottom edge (horizontal divider) if not at screen bottom
-            if (c[1] + c[3] < h) {
-                dc.drawLine(c[0], c[1] + c[3], c[0] + c[2], c[1] + c[3]);
+            if (cy + ch < h) {
+                dc.drawLine(cx, cy + ch, cx + cw, cy + ch);
             }
         }
 
@@ -250,16 +492,29 @@ class RowingView extends WatchUi.View {
             lf = Graphics.FONT_TINY;
         }
         for (var i = 0; i < n && i < cells.size(); i++) {
-            var c = cells[i];
+            var cx = cells[i][0];
+            var cy = cells[i][1];
+            var cw = cells[i][2];
+            var ch = cells[i][3];
             var fid = visible[i];
-            var vf = pickFont(c[2], c[3], w, h);
+            var vf = pickFont(cw, ch, w, h);
             if (fid == FieldConfig.F_DISTANCE) {
-                drawDistanceCell(dc, c[0], c[1], c[2], c[3], lf, vf);
+                drawDistanceCell(dc, cx, cy, cw, ch, lf, vf);
             } else {
                 var label = FieldConfig.getLabel(fid);
                 var value = getFieldValue(fid);
-                drawCell(dc, c[0], c[1], c[2], c[3], label, value, lf, vf);
+                drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
             }
+        }
+
+        // Demo mode: yellow border + red label
+        if (app.featureConfig.isEnabled(FeatureConfig.FEAT_DEMO_MODE)) {
+            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
+            dc.drawRectangle(0, 0, w, h);
+            dc.drawRectangle(1, 1, w - 2, h - 2);
+            dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(w - 4, cells[0][1] + 2, Graphics.FONT_SMALL,
+                        "DEMO MODE", Graphics.TEXT_JUSTIFY_RIGHT);
         }
     }
 
@@ -334,8 +589,9 @@ class RowingView extends WatchUi.View {
             case FieldConfig.F_SPEED:
                 return speed > 0 ? speed.format("%.1f") : "--";
             case FieldConfig.F_AVG_SPLIT:
-                if (elapsedTime > 0 && distance > 0) {
-                    return formatSplit(500.0 * elapsedTime / distance);
+                if (elapsedTime > 0) {
+                    var d = distance > 0.01 ? distance : 0.01;
+                    return formatSplit(500.0 * elapsedTime / d);
                 }
                 return "--:--";
             case FieldConfig.F_CALORIES:
