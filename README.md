@@ -16,15 +16,21 @@ features specific to the sport.
 
 ## Features
 
-- **Split time /500m** from GPS speed -- the primary rowing metric
-- **Stroke rate (SPM)** from accelerometer -- orientation-independent detection
+- **Split time /500m** from GPS distance (10s sliding window, proper v=dx/dt)
+- **Stroke rate (SPM)** from accelerometer -- event-based interval averaging over last 6 strokes
 - **Heart rate** from paired ANT+ HR sensor
 - **Activity recording** as FIT SPORT_ROWING with custom fields
 - **Wahoo-style zoom** -- UP/DOWN buttons to show fewer/more fields with auto-scaling fonts
 - **Configurable data fields** -- reorder, add, remove fields via on-device menu
 - **Auto gravity calibration** -- 2-second static sampling at activity start
+- **Auto-pause/resume** -- GPS speed based with holdoff/cooldown hysteresis
 - **Pause/resume** with lap marking
-- **Raw accelerometer data** recorded to FIT for offline analysis
+- **Pause display** -- distance, time, avg split, clock while paused
+- **Activity summary** -- shown for 10s after save (distance, time, strokes, split, HR)
+- **Demo mode** -- simulated data for testing without GPS/water
+- **Feature toggles** -- enable/disable auto-pause, demo mode, accel logging via menu
+- **Accelerometer logging** -- optional raw accel data in FIT for offline analysis
+- **FIT data extraction** -- Python tool with gnuplot visualization (tools/fit_extract.py)
 
 ## Supported Devices
 
@@ -96,14 +102,15 @@ make deploy
 
 Press MENU to access settings:
 - **Data Fields**: reorder, add, remove fields (priority order)
-- **Threshold**: stroke detection sensitivity (milliG)
+- **Threshold**: stroke detection sensitivity (milliG, default 200)
 - **Zoom Level**: number of visible fields
+- **Features**: toggle auto-pause, demo mode, accel logging
 
 ## TODO
 
+- [ ] Force curve graph -- real-time stroke force profile from accelerometer
 - [ ] Varia radar obstacle detection (mount on boat nose for forward warning)
 - [ ] Phone settings via settings.xml (requires Connect IQ Store publish)
-- [ ] Auto-pause when speed drops below threshold
 - [ ] Roll-axis calibration for signed forward acceleration
 - [ ] Edge 1040/1050 layout optimization
 - [ ] Interval workouts
