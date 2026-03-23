@@ -42,6 +42,12 @@ class StrokeDetector {
     var gravZ = 1000.0;
     const GRAV_ALPHA = 0.005; // very slow drift correction after calibration
 
+    // Boat forward unit vector in Y-Z plane (computed from gravity after calibration).
+    // X axis is perpendicular to boat movement, so forward = cross(X_unit, gravity)
+    // normalized and projected to Y-Z plane: F = normalize(0, -gz, gy)
+    var fwdY = 0.0;
+    var fwdZ = 0.0;
+
     // Signal processing on linear acceleration magnitude
     var emaValue = 0.0;
     var prevEma = 0.0;
@@ -65,6 +71,11 @@ class StrokeDetector {
     var linMagSum = 0.0;
     var emaSnapshot = 0.0;
     var sampleCount = 0;
+
+    // Forward acceleration stats (signed: positive=drive, negative=recovery)
+    var fwdAccelSum = 0.0;
+    var fwdAccelMin = 0.0;
+    var fwdAccelMax = 0.0;
 
     function initialize() {
         for (var i = 0; i < strokeTimes.size(); i++) {
@@ -141,6 +152,8 @@ class StrokeDetector {
         gravX = 0.0;
         gravY = 0.0;
         gravZ = 1000.0;
+        fwdY = 0.0;
+        fwdZ = 0.0;
     }
 
     // Returns true when calibration is complete
@@ -187,17 +200,26 @@ class StrokeDetector {
             // Magnitude of linear acceleration
             var mag = Math.sqrt(lx * lx + ly * ly + lz * lz);
 
+            // Forward acceleration: dot(linear_accel, forward_vector)
+            // Positive = drive (accelerating forward), negative = drag/recovery
+            var fwdAccel = ly * fwdY + lz * fwdZ;
+
             // Track statistics for FIT recording
             rawXsum += rx;
             rawYsum += ry;
             rawZsum += rz;
             linMagSum += mag;
+            fwdAccelSum += fwdAccel;
             if (sampleCount == 0) {
                 linMagMin = mag;
                 linMagMax = mag;
+                fwdAccelMin = fwdAccel;
+                fwdAccelMax = fwdAccel;
             } else {
                 if (mag < linMagMin) { linMagMin = mag; }
                 if (mag > linMagMax) { linMagMax = mag; }
+                if (fwdAccel < fwdAccelMin) { fwdAccelMin = fwdAccel; }
+                if (fwdAccel > fwdAccelMax) { fwdAccelMax = fwdAccel; }
             }
             sampleCount++;
 
@@ -244,8 +266,22 @@ class StrokeDetector {
             gravX = calSumX / calCount;
             gravY = calSumY / calCount;
             gravZ = calSumZ / calCount;
+            computeForwardVector();
             calibrating = false;
             calibrated = true;
+        }
+    }
+
+    // Compute boat forward unit vector from gravity.
+    // Forward direction = perpendicular to gravity in Y-Z plane.
+    // cross(X_unit, gravity) = (0, -gz, gy), then normalize.
+    function computeForwardVector() {
+        var fy = -gravZ;
+        var fz = gravY;
+        var mag = Math.sqrt(fy * fy + fz * fz);
+        if (mag > 0.001) {
+            fwdY = fy / mag;
+            fwdZ = fz / mag;
         }
     }
 
@@ -253,26 +289,34 @@ class StrokeDetector {
         strokeRate = computeStrokeRate(System.getTimer());
     }
 
+    // Returns [rawXmean, rawYmean, rawZmean, linMagMin, linMagMax, linMagMean,
+    //          ema, fwdAccelMean, fwdAccelMin, fwdAccelMax]
     function getAccelStats() {
         var xm = 0.0;
         var ym = 0.0;
         var zm = 0.0;
         var lmean = 0.0;
+        var fmean = 0.0;
         if (sampleCount > 0) {
             var sc = sampleCount.toFloat();
             xm = rawXsum / sc;
             ym = rawYsum / sc;
             zm = rawZsum / sc;
             lmean = linMagSum / sc;
+            fmean = fwdAccelSum / sc;
         }
         emaSnapshot = emaValue;
-        var stats = [xm, ym, zm, linMagMin, linMagMax, lmean, emaSnapshot];
+        var stats = [xm, ym, zm, linMagMin, linMagMax, lmean, emaSnapshot,
+                     fmean, fwdAccelMin, fwdAccelMax];
         rawXsum = 0.0;
         rawYsum = 0.0;
         rawZsum = 0.0;
         linMagMin = 0.0;
         linMagMax = 0.0;
         linMagSum = 0.0;
+        fwdAccelSum = 0.0;
+        fwdAccelMin = 0.0;
+        fwdAccelMax = 0.0;
         sampleCount = 0;
         return stats;
     }

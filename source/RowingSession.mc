@@ -17,6 +17,10 @@ class RowingSession {
     var linMagMaxField = null;
     var linMagMeanField = null;
     var linMagEmaField = null;
+    // Forward acceleration (signed: positive=drive, negative=recovery)
+    var fwdAccelMeanField = null;
+    var fwdAccelMinField = null;
+    var fwdAccelMaxField = null;
 
     function initialize() {
     }
@@ -79,6 +83,21 @@ class RowingSession {
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
+                fwdAccelMeanField = session.createField(
+                    "fwd_accel_mean", 9,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                fwdAccelMinField = session.createField(
+                    "fwd_accel_min", 10,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                fwdAccelMaxField = session.createField(
+                    "fwd_accel_max", 11,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
             }
 
             session.start();
@@ -133,7 +152,8 @@ class RowingSession {
         }
     }
 
-    // stats: [rawXmean, rawYmean, rawZmean, linMagMin, linMagMax, linMagMean, ema]
+    // stats: [rawX, rawY, rawZ, linMagMin, linMagMax, linMagMean, ema,
+    //         fwdAccelMean, fwdAccelMin, fwdAccelMax]
     function setAccelStats(stats) {
         if (rawXfield != null) { rawXfield.setData(stats[0].toNumber()); }
         if (rawYfield != null) { rawYfield.setData(stats[1].toNumber()); }
@@ -142,5 +162,8 @@ class RowingSession {
         if (linMagMaxField != null) { linMagMaxField.setData(stats[4].toNumber()); }
         if (linMagMeanField != null) { linMagMeanField.setData(stats[5].toNumber()); }
         if (linMagEmaField != null) { linMagEmaField.setData(stats[6].toNumber()); }
+        if (fwdAccelMeanField != null) { fwdAccelMeanField.setData(stats[7].toNumber()); }
+        if (fwdAccelMinField != null) { fwdAccelMinField.setData(stats[8].toNumber()); }
+        if (fwdAccelMaxField != null) { fwdAccelMaxField.setData(stats[9].toNumber()); }
     }
 }
