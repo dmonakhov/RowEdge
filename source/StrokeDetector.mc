@@ -339,22 +339,38 @@ class StrokeDetector {
             strokeCurve[i] = curveBuf[(startIdx + i) % CURVE_BUF_SIZE];
         }
 
-        // Compute metrics from the snapshot
+        // Find peak and its index
         var dt = 0.04;  // 1/25Hz = 40ms
         var peak = 0.0;
-        var driveSum = 0.0;
-        var driveSamples = 0;
-        var recovSamples = 0;
-
+        var peakIdx = 0;
         for (var i = 0; i < nSamples; i++) {
             var v = strokeCurve[i].toFloat();
-            if (v > peak) { peak = v; }
-            if (v > 0) {
-                driveSum += v;
-                driveSamples++;
-            } else {
-                recovSamples++;
-            }
+            if (v > peak) { peak = v; peakIdx = i; }
+        }
+
+        // Find drive phase boundaries: scan outward from peak to find
+        // zero-crossings. This identifies the contiguous positive region
+        // around the peak, ignoring noise elsewhere.
+        var driveStart = peakIdx;
+        var driveEnd = peakIdx;
+        // Scan backward from peak to find start of drive (last zero-crossing before peak)
+        for (var i = peakIdx - 1; i >= 0; i--) {
+            if (strokeCurve[i] <= 0) { break; }
+            driveStart = i;
+        }
+        // Scan forward from peak to find end of drive (first zero-crossing after peak)
+        for (var i = peakIdx + 1; i < nSamples; i++) {
+            if (strokeCurve[i] <= 0) { break; }
+            driveEnd = i;
+        }
+
+        var driveSamples = driveEnd - driveStart + 1;
+        var recovSamples = nSamples - driveSamples;
+
+        // Compute drive phase metrics
+        var driveSum = 0.0;
+        for (var i = driveStart; i <= driveEnd; i++) {
+            driveSum += strokeCurve[i].toFloat();
         }
 
         strokePeak = peak;
