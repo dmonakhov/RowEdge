@@ -32,6 +32,7 @@ class FieldConfig {
         F_CALORIES,   // Calories
         F_ACCEL_AVG,  // Avg accel (calibration)
         F_ACCEL_MAX,  // Max accel (calibration)
+        F_ACCEL_CURVE, // Acceleration curve graph
         F_COUNT       // sentinel
     }
 
@@ -166,6 +167,7 @@ class FieldConfig {
             case F_CALORIES:  return "CALORIES";
             case F_ACCEL_AVG: return "AVG ACCEL";
             case F_ACCEL_MAX: return "MAX ACCEL";
+            case F_ACCEL_CURVE: return "ACCEL CURVE";
             default:          return "?";
         }
     }
@@ -185,6 +187,7 @@ class FieldConfig {
             case F_CALORIES:  return "Calories";
             case F_ACCEL_AVG: return "Avg Accel";
             case F_ACCEL_MAX: return "Max Accel";
+            case F_ACCEL_CURVE: return "Accel Curve";
             default:          return "Unknown";
         }
     }

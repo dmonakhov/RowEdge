@@ -82,6 +82,21 @@ class StrokeDetector {
     var hfreqBuf = new [25];
     var hfreqCount = 0;
 
+    // Ring buffer for stroke curve display (3 seconds at 25Hz)
+    const CURVE_BUF_SIZE = 75;
+    var curveBuf = new [75];
+    var curveBufIdx = 0;
+    var curveBufCount = 0;
+
+    // Last stroke snapshot for display
+    var strokeCurve = null;      // array of fwd_accel samples for last stroke
+    var strokeCurveLen = 0;
+    var strokeDriveTime = 0.0;   // seconds
+    var strokeRecovTime = 0.0;   // seconds
+    var strokePeak = 0.0;        // mG
+    var strokeForceRatio = 0.0;  // avg/peak (0-1)
+    var strokeDeltaV = 0.0;      // m/s, impulse
+
     function initialize() {
         for (var i = 0; i < strokeTimes.size(); i++) {
             strokeTimes[i] = 0;
@@ -215,6 +230,11 @@ class StrokeDetector {
                 hfreqCount++;
             }
 
+            // Ring buffer for stroke curve display
+            curveBuf[curveBufIdx] = fwdAccel.toNumber();
+            curveBufIdx = (curveBufIdx + 1) % CURVE_BUF_SIZE;
+            if (curveBufCount < CURVE_BUF_SIZE) { curveBufCount++; }
+
             // Track statistics for FIT recording
             rawXsum += rx;
             rawYsum += ry;
@@ -251,11 +271,13 @@ class StrokeDetector {
                     interval >= MIN_STROKE_INTERVAL &&
                     interval <= MAX_STROKE_INTERVAL) {
                     strokeCount++;
+                    snapshotStrokeCurve(interval);
                     recordStrokeTime(now);
                     lastStrokeTime = now;
                 } else if (lastStrokeTime == 0 ||
                            interval > MAX_STROKE_INTERVAL) {
                     strokeCount++;
+                    snapshotStrokeCurve(interval);
                     recordStrokeTime(now);
                     lastStrokeTime = now;
                 }
@@ -298,6 +320,57 @@ class StrokeDetector {
             fwdY = fy / mag;
             fwdZ = fz / mag;
         }
+    }
+
+    // Snapshot the ring buffer on stroke detection. Extract the last
+    // stroke's worth of samples, compute drive/recovery metrics.
+    function snapshotStrokeCurve(intervalMs) {
+        // Number of samples for this stroke interval
+        var nSamples = (intervalMs * 25 / 1000);  // 25Hz
+        if (nSamples > curveBufCount) { nSamples = curveBufCount; }
+        if (nSamples > CURVE_BUF_SIZE) { nSamples = CURVE_BUF_SIZE; }
+        if (nSamples < 5) { return; }
+
+        // Copy from ring buffer (oldest to newest)
+        strokeCurve = new [nSamples];
+        strokeCurveLen = nSamples;
+        var startIdx = (curveBufIdx - nSamples + CURVE_BUF_SIZE) % CURVE_BUF_SIZE;
+        for (var i = 0; i < nSamples; i++) {
+            strokeCurve[i] = curveBuf[(startIdx + i) % CURVE_BUF_SIZE];
+        }
+
+        // Compute metrics from the snapshot
+        var dt = 0.04;  // 1/25Hz = 40ms
+        var peak = 0.0;
+        var driveSum = 0.0;
+        var driveSamples = 0;
+        var recovSamples = 0;
+
+        for (var i = 0; i < nSamples; i++) {
+            var v = strokeCurve[i].toFloat();
+            if (v > peak) { peak = v; }
+            if (v > 0) {
+                driveSum += v;
+                driveSamples++;
+            } else {
+                recovSamples++;
+            }
+        }
+
+        strokePeak = peak;
+        strokeDriveTime = driveSamples * dt;
+        strokeRecovTime = recovSamples * dt;
+
+        // Force ratio = mean(drive_accel) / peak
+        if (peak > 0 && driveSamples > 0) {
+            strokeForceRatio = (driveSum / driveSamples) / peak;
+        } else {
+            strokeForceRatio = 0.0;
+        }
+
+        // Delta-V = integral of fwd_accel over drive phase
+        // Convert mG to m/s^2 (* 0.00981), multiply by dt
+        strokeDeltaV = driveSum * dt * 0.00981;
     }
 
     function refreshStrokeRate() {

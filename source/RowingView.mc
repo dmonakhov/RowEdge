@@ -502,7 +502,9 @@ class RowingView extends WatchUi.View {
             var ch = cells[i][3];
             var fid = visible[i];
             var vf = pickFont(cw, ch, w, h);
-            if (fid == FieldConfig.F_DISTANCE) {
+            if (fid == FieldConfig.F_ACCEL_CURVE) {
+                drawAccelCurve(dc, cx, cy, cw, ch, lf);
+            } else if (fid == FieldConfig.F_DISTANCE) {
                 drawDistanceCell(dc, cx, cy, cw, ch, lf, vf);
             } else {
                 var label = FieldConfig.getLabel(fid);
@@ -640,6 +642,100 @@ class RowingView extends WatchUi.View {
     }
 
     // Distance cell: number + stacked "k" over "m" suffix when >= 3km
+    // Acceleration curve graph: last stroke waveform + overlay metrics
+    function drawAccelCurve(dc, x, y, w, h, lblFont) {
+        var app = Application.getApp();
+        var det = app.strokeDetector;
+        var lblH = dc.getFontHeight(lblFont);
+
+        // Label + metrics header
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x + 3, y + 1, lblFont, "ACCEL CURVE", Graphics.TEXT_JUSTIFY_LEFT);
+
+        if (det.strokeCurve == null || det.strokeCurveLen < 5) {
+            // No stroke data yet
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + w / 2, y + h / 2 - 10, Graphics.FONT_SMALL,
+                        "--", Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+
+        // Overlay metrics top-right
+        var fr = det.strokeForceRatio;
+        var dr = det.strokeDriveTime > 0 ?
+                 det.strokeRecovTime / det.strokeDriveTime : 0;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x + w - 3, y + 1, Graphics.FONT_XTINY,
+                    "FR " + fr.format("%.2f"),
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.drawText(x + w - 3, y + 15, Graphics.FONT_XTINY,
+                    "1:" + dr.format("%.1f"),
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+
+        // Delta-V bottom-right
+        dc.drawText(x + w - 3, y + h - 16, Graphics.FONT_XTINY,
+                    "dv " + det.strokeDeltaV.format("%.2f"),
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+
+        // Graph area
+        var gx = x + 4;
+        var gy = y + lblH + 2;
+        var gw = w - 8;
+        var gh = h - lblH - 20;
+        if (gh < 20) { return; }
+
+        // Find Y range from data
+        var yMin = 0;
+        var yMax = 0;
+        var n = det.strokeCurveLen;
+        for (var i = 0; i < n; i++) {
+            var v = det.strokeCurve[i];
+            if (v < yMin) { yMin = v; }
+            if (v > yMax) { yMax = v; }
+        }
+        // Ensure symmetric range with padding
+        if (yMax < 10) { yMax = 10; }
+        if (yMin > -10) { yMin = -10; }
+        var yRange = yMax - yMin;
+
+        // Zero line position
+        var zeroY = gy + (yMax * gh / yRange).toNumber();
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(gx, zeroY, gx + gw, zeroY);
+
+        // Draw filled areas + curve
+        var xScale = gw.toFloat() / (n - 1);
+        var prevPx = gx;
+        var prevPy = zeroY;
+
+        for (var i = 0; i < n; i++) {
+            var v = det.strokeCurve[i];
+            var px = gx + (i * xScale).toNumber();
+            var py = gy + ((yMax - v) * gh / yRange).toNumber();
+
+            // Clamp to graph bounds
+            if (py < gy) { py = gy; }
+            if (py > gy + gh) { py = gy + gh; }
+
+            // Fill: green above zero, light red below
+            if (v > 0) {
+                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
+                dc.fillRectangle(px, py, 2, zeroY - py);
+            } else if (v < 0) {
+                dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_RED);
+                dc.fillRectangle(px, zeroY, 2, py - zeroY);
+            }
+
+            // Curve line
+            if (i > 0) {
+                dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
+                dc.drawLine(prevPx, prevPy, px, py);
+            }
+            prevPx = px;
+            prevPy = py;
+        }
+    }
+
     function drawDistanceCell(dc, x, y, w, h, lblFont, valFont) {
         var cx = x + w / 2;
         var lblH = dc.getFontHeight(lblFont);
