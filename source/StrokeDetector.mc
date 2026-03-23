@@ -77,6 +77,11 @@ class StrokeDetector {
     var fwdAccelMin = 0.0;
     var fwdAccelMax = 0.0;
 
+    // High-frequency forward accel buffer (25 samples/sec, written to FIT)
+    const HFREQ_BUF_SIZE = 25;
+    var hfreqBuf = new [25];
+    var hfreqCount = 0;
+
     function initialize() {
         for (var i = 0; i < strokeTimes.size(); i++) {
             strokeTimes[i] = 0;
@@ -204,6 +209,12 @@ class StrokeDetector {
             // Positive = drive (accelerating forward), negative = drag/recovery
             var fwdAccel = ly * fwdY + lz * fwdZ;
 
+            // Buffer for high-frequency FIT recording
+            if (hfreqCount < HFREQ_BUF_SIZE) {
+                hfreqBuf[hfreqCount] = fwdAccel.toNumber();
+                hfreqCount++;
+            }
+
             // Track statistics for FIT recording
             rawXsum += rx;
             rawYsum += ry;
@@ -323,6 +334,22 @@ class StrokeDetector {
         fwdAccelMax = 0.0;
         sampleCount = 0;
         return stats;
+    }
+
+    // Get high-frequency samples as array of packed SINT32 values.
+    // Each SINT32 packs 2 sint16: low 16 bits = sample[2k], high 16 bits = sample[2k+1]
+    // Returns array of 13 packed values (25 samples -> 12 pairs + 1 single).
+    function getHfreqPacked() {
+        var packed = new [13];
+        for (var k = 0; k < 13; k++) {
+            var idx = k * 2;
+            var lo = (idx < hfreqCount) ? hfreqBuf[idx] : 0;
+            var hi = (idx + 1 < hfreqCount) ? hfreqBuf[idx + 1] : 0;
+            // Pack: low 16 bits = lo, high 16 bits = hi
+            packed[k] = (lo & 0xFFFF) | ((hi & 0xFFFF) << 16);
+        }
+        hfreqCount = 0;
+        return packed;
     }
 
     function recordStrokeTime(ts) {

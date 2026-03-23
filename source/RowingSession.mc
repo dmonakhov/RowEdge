@@ -21,6 +21,9 @@ class RowingSession {
     var fwdAccelMeanField = null;
     var fwdAccelMinField = null;
     var fwdAccelMaxField = null;
+    // High-frequency forward accel: 25 samples/sec packed as 13 SINT32 fields
+    // Each SINT32 = 2x sint16 packed: low=sample[2k], high=sample[2k+1]
+    var hfreqFields = null; // array of 13 FitField, or null if disabled
 
     function initialize() {
     }
@@ -45,9 +48,23 @@ class RowingSession {
                 {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"}
             );
 
-            // Accel fields only when Accel Logging is enabled
             var app = Application.getApp();
-            if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ACCEL_LOG)) {
+            var hfreq = app.featureConfig.isEnabled(FeatureConfig.FEAT_HFREQ_ACCEL);
+
+            if (hfreq) {
+                // High-frequency mode: 25 fwd_accel samples/sec packed as 13 SINT32
+                // Each SINT32 = 2x sint16: low 16 bits = sample[2k], high = sample[2k+1]
+                // Uses 13 fields + 2 base = 15 total (max 16 allowed)
+                hfreqFields = new [13];
+                for (var k = 0; k < 13; k++) {
+                    hfreqFields[k] = session.createField(
+                        "hf_" + k, 2 + k,
+                        FitContributor.DATA_TYPE_SINT32,
+                        {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG2"}
+                    );
+                }
+            } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ACCEL_LOG)) {
+                // Low-frequency mode: 1Hz summary stats (10 fields)
                 rawXfield = session.createField(
                     "accel_raw_x", 2,
                     FitContributor.DATA_TYPE_SINT16,
@@ -149,6 +166,15 @@ class RowingSession {
     function setDPS(dps) {
         if (dpsField != null) {
             dpsField.setData(dps);
+        }
+    }
+
+    // Write 25 packed high-frequency samples (13 SINT32 values)
+    function setHfreqData(packed) {
+        if (hfreqFields != null) {
+            for (var k = 0; k < 13; k++) {
+                hfreqFields[k].setData(packed[k]);
+            }
         }
     }
 

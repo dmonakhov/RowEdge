@@ -7,6 +7,7 @@ class FeatureConfig {
         FEAT_AUTO_PAUSE,
         FEAT_DEMO_MODE,
         FEAT_ACCEL_LOG,
+        FEAT_HFREQ_ACCEL,
         FEAT_COUNT
     }
 
@@ -21,6 +22,7 @@ class FeatureConfig {
         enabled[FEAT_AUTO_PAUSE] = loadBool("feat_autoPause", true);
         enabled[FEAT_DEMO_MODE] = loadBool("feat_demoMode", false);
         enabled[FEAT_ACCEL_LOG] = loadBool("feat_accelLog", false);
+        enabled[FEAT_HFREQ_ACCEL] = loadBool("feat_hfreqAccel", false);
     }
 
     function loadBool(key, defaultVal) {
@@ -34,7 +36,7 @@ class FeatureConfig {
 
     function toggle(featId) {
         enabled[featId] = !enabled[featId];
-        var keys = ["feat_autoPause", "feat_demoMode", "feat_accelLog"];
+        var keys = ["feat_autoPause", "feat_demoMode", "feat_accelLog", "feat_hfreqAccel"];
         Application.Storage.setValue(keys[featId], enabled[featId]);
     }
 
@@ -43,6 +45,7 @@ class FeatureConfig {
             case FEAT_AUTO_PAUSE: return "Auto Pause";
             case FEAT_DEMO_MODE: return "Demo Mode";
             case FEAT_ACCEL_LOG: return "Accel Logging";
+            case FEAT_HFREQ_ACCEL: return "HF Accel (25Hz)";
             default: return "?";
         }
     }

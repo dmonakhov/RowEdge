@@ -24,6 +24,32 @@ def semicircles_to_deg(sc):
     """Convert Garmin semicircles to degrees."""
     return sc * (180.0 / 2**31)
 
+def unpack_sint16(val):
+    """Unpack a uint16 value to signed int16."""
+    if val >= 0x8000:
+        return val - 0x10000
+    return val
+
+def unpack_hfreq(d):
+    """Unpack 13 SINT32 fields (hf_0..hf_12) into 25 sint16 fwd_accel samples."""
+    hf0 = d.get('hf_0')
+    if hf0 is None:
+        return None
+    samples = []
+    for k in range(13):
+        packed = d.get(f'hf_{k}')
+        if packed is None:
+            break
+        # Handle signed SINT32
+        if packed < 0:
+            packed = packed + 0x100000000
+        lo = unpack_sint16(packed & 0xFFFF)
+        hi = unpack_sint16((packed >> 16) & 0xFFFF)
+        samples.append(lo)
+        if len(samples) < 25:
+            samples.append(hi)
+    return samples if samples else None
+
 def extract(fit_path):
     base = os.path.splitext(os.path.basename(fit_path))[0]
     outdir = os.path.join(os.path.dirname(fit_path), base)
@@ -34,6 +60,7 @@ def extract(fit_path):
     gps_rows = []
     accel_rows = []
     stroke_rows = []
+    hfreq_rows = []
     session_info = {}
 
     t0 = None
@@ -81,7 +108,18 @@ def extract(fit_path):
         lmax = d.get('lin_mag_max')
         lmean = d.get('lin_mag_mean')
         lema = d.get('lin_mag_ema')
-        accel_rows.append((elapsed, ax, ay, az, lmin, lmax, lmean, lema))
+        fwd_mean = d.get('fwd_accel_mean')
+        fwd_min = d.get('fwd_accel_min')
+        fwd_max = d.get('fwd_accel_max')
+        accel_rows.append((elapsed, ax, ay, az, lmin, lmax, lmean, lema,
+                           fwd_mean, fwd_min, fwd_max))
+
+        # High-frequency forward accel (25 samples/sec packed as 13 SINT32)
+        hf_samples = unpack_hfreq(d)
+        if hf_samples:
+            dt = 1.0 / len(hf_samples)
+            for si, sv in enumerate(hf_samples):
+                hfreq_rows.append((elapsed + si * dt, sv))
 
         # Stroke data
         spm = d.get('stroke_rate')
@@ -102,8 +140,13 @@ def extract(fit_path):
       ['elapsed_s', 'lat_deg', 'lon_deg', 'speed_ms', 'distance_m', 'heart_rate', 'temp_C', 'split500_s'],
       gps_rows)
     w('accel.tsv',
-      ['elapsed_s', 'raw_x_mG', 'raw_y_mG', 'raw_z_mG', 'lin_mag_min', 'lin_mag_max', 'lin_mag_mean', 'lin_mag_ema'],
+      ['elapsed_s', 'raw_x_mG', 'raw_y_mG', 'raw_z_mG', 'lin_mag_min', 'lin_mag_max',
+       'lin_mag_mean', 'lin_mag_ema', 'fwd_mean', 'fwd_min', 'fwd_max'],
       accel_rows)
+    if hfreq_rows:
+        w('hfreq_fwd.tsv',
+          ['elapsed_s', 'fwd_accel_mG'],
+          hfreq_rows)
     w('strokes.tsv',
       ['elapsed_s', 'stroke_rate_spm', 'distance_per_stroke_m'],
       stroke_rows)
@@ -159,6 +202,8 @@ def extract(fit_path):
     write_gps_plot(outdir)
     write_accel_plot(outdir)
     write_strokes_plot(outdir)
+    if hfreq_rows:
+        write_hfreq_plot(outdir)
     write_plot_all(outdir)
 
 def write_gps_plot(outdir):
@@ -298,6 +343,34 @@ plot 'strokes.tsv' using ($1/60):($3 > 0 ? $3 : NaN) with linespoints pt 7 ps 0.
 unset multiplot
 """)
     print(f"  plot_strokes.gp")
+
+def write_hfreq_plot(outdir):
+    path = os.path.join(outdir, 'plot_hfreq.gp')
+    with open(path, 'w') as f:
+        f.write("""# High-frequency forward acceleration (25Hz)
+# Usage: gnuplot plot_hfreq.gp
+# Zoom: gnuplot -e "t_start=5; t_end=8" plot_hfreq.gp
+# Interactive: gnuplot -e "interactive=1; t_start=15; t_end=20" plot_hfreq.gp
+
+if (!exists("t_start")) t_start = 0
+if (!exists("t_end")) t_end = 100
+if (!exists("interactive")) interactive = 0
+
+if (interactive) {
+    set terminal qt size 1200,600 font "sans,11" persist
+} else {
+    set terminal pngcairo size 1200,600 font "sans,11"
+    set output 'hfreq_fwd.png'
+}
+
+set title sprintf("Forward Acceleration 25Hz [%.0f-%.0f min]", t_start, t_end)
+set xlabel "Time (min)"
+set ylabel "mG"
+set xrange [t_start:t_end]
+set arrow from graph 0,first 0 to graph 1,first 0 nohead lc rgb '#888888' dt 2
+plot 'hfreq_fwd.tsv' using ($1/60):2 with lines lw 0.5 lc rgb '#1565c0' title 'fwd accel'
+""")
+    print(f"  plot_hfreq.gp")
 
 def write_plot_all(outdir):
     path = os.path.join(outdir, 'plot_all.sh')
