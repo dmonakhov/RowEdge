@@ -96,6 +96,8 @@ class StrokeDetector {
     var strokePeak = 0.0;        // mG
     var strokeForceRatio = 0.0;  // avg/peak (0-1)
     var strokeDeltaV = 0.0;      // m/s, impulse
+    var strokeCatchDur = 0.0;    // seconds, time from min accel to zero-crossing
+    var strokeCatchSlope = 0.0;  // mG/s, rate of accel increase at catch
 
     function initialize() {
         for (var i = 0; i < strokeTimes.size(); i++) {
@@ -387,6 +389,25 @@ class StrokeDetector {
         // Delta-V = integral of fwd_accel over drive phase
         // Convert mG to m/s^2 (* 0.00981), multiply by dt
         strokeDeltaV = driveSum * dt * 0.00981;
+
+        // Catch metrics: scan recovery phase before driveStart to find
+        // minimum accel (deepest negative dip = catch impact).
+        // Catch duration = time from min to driveStart (zero-crossing).
+        // Catch slope = |min_accel| / catch_duration (mG/s).
+        var minAccel = 0.0;
+        var minIdx = driveStart;
+        for (var i = 0; i < driveStart; i++) {
+            var v = strokeCurve[i].toFloat();
+            if (v < minAccel) { minAccel = v; minIdx = i; }
+        }
+        var catchSamples = driveStart - minIdx;
+        if (catchSamples > 0 && minAccel < 0) {
+            strokeCatchDur = catchSamples * dt;
+            strokeCatchSlope = (-minAccel) / strokeCatchDur;
+        } else {
+            strokeCatchDur = 0.0;
+            strokeCatchSlope = 0.0;
+        }
     }
 
     function refreshStrokeRate() {
