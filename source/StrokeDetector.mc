@@ -82,9 +82,9 @@ class StrokeDetector {
     var hfreqBuf = new [25];
     var hfreqCount = 0;
 
-    // Ring buffer for stroke curve display (3 seconds at 25Hz)
-    const CURVE_BUF_SIZE = 75;
-    var curveBuf = new [75];
+    // Ring buffer for stroke curve display (4 seconds at 25Hz, covers >=15 SPM)
+    const CURVE_BUF_SIZE = 100;
+    var curveBuf = new [100];
     var curveBufIdx = 0;
     var curveBufCount = 0;
 
