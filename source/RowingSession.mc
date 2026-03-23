@@ -1,6 +1,7 @@
 using Toybox.ActivityRecording;
 using Toybox.FitContributor;
 using Toybox.Activity;
+using Toybox.Application;
 
 class RowingSession {
 
@@ -40,44 +41,45 @@ class RowingSession {
                 {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"}
             );
 
-            // Raw accelerometer axes (1-sec mean, for orientation analysis)
-            rawXfield = session.createField(
-                "accel_raw_x", 2,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
-            rawYfield = session.createField(
-                "accel_raw_y", 3,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
-            rawZfield = session.createField(
-                "accel_raw_z", 4,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
-
-            // Gravity-subtracted linear accel magnitude (for threshold tuning)
-            linMagMinField = session.createField(
-                "lin_mag_min", 5,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
-            linMagMaxField = session.createField(
-                "lin_mag_max", 6,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
-            linMagMeanField = session.createField(
-                "lin_mag_mean", 7,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
-            linMagEmaField = session.createField(
-                "lin_mag_ema", 8,
-                FitContributor.DATA_TYPE_SINT16,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
-            );
+            // Accel fields only when Accel Logging is enabled
+            var app = Application.getApp();
+            if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ACCEL_LOG)) {
+                rawXfield = session.createField(
+                    "accel_raw_x", 2,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                rawYfield = session.createField(
+                    "accel_raw_y", 3,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                rawZfield = session.createField(
+                    "accel_raw_z", 4,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                linMagMinField = session.createField(
+                    "lin_mag_min", 5,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                linMagMaxField = session.createField(
+                    "lin_mag_max", 6,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                linMagMeanField = session.createField(
+                    "lin_mag_mean", 7,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+                linMagEmaField = session.createField(
+                    "lin_mag_ema", 8,
+                    FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
+                );
+            }
 
             session.start();
         }
