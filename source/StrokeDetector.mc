@@ -223,10 +223,14 @@ class StrokeDetector {
             }
             sampleCount++;
 
-            // EMA on magnitude
-            emaValue = EMA_ALPHA * mag + (1.0 - EMA_ALPHA) * emaValue;
+            // EMA on forward acceleration for stroke detection.
+            // Use fwdAccel (signed) instead of magnitude -- isolates rowing
+            // motion from lateral sway and vertical bounce.
+            // Before calibration completes (fwdY=fwdZ=0), fall back to magnitude.
+            var detectionSignal = (fwdY != 0.0 || fwdZ != 0.0) ? fwdAccel : mag;
+            emaValue = EMA_ALPHA * detectionSignal + (1.0 - EMA_ALPHA) * emaValue;
 
-            // Stroke detection
+            // Stroke detection: drive phase produces positive forward accel peak
             var isPeak = (emaValue > catchThreshold);
 
             if (wasPeak && !isPeak) {
