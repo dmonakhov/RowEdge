@@ -13,6 +13,7 @@ class MainMenuView extends WatchUi.Menu2 {
         var cfg = app.fieldConfig;
         var fc = cfg.getVisibleCount();
         addItem(new WatchUi.MenuItem("Zoom Level", "z" + cfg.zoomLevel + " (" + fc + " fields)", :zoom, null));
+        addItem(new WatchUi.MenuItem("Features", "Auto-pause, demo...", :features, null));
     }
 }
 
@@ -39,6 +40,12 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             WatchUi.pushView(
                 new ZoomView(),
                 new ZoomDelegate(),
+                WatchUi.SLIDE_LEFT
+            );
+        } else if (id == :features) {
+            WatchUi.pushView(
+                new FeatureToggleMenu(),
+                new FeatureToggleDelegate(),
                 WatchUi.SLIDE_LEFT
             );
         }
@@ -259,5 +266,34 @@ class ZoomDelegate extends WatchUi.BehaviorDelegate {
     function onBack() {
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
+    }
+}
+
+// Feature toggle menu: enable/disable features
+class FeatureToggleMenu extends WatchUi.Menu2 {
+    function initialize() {
+        Menu2.initialize({:title => "Features"});
+        var app = Application.getApp();
+        var fc = app.featureConfig;
+        for (var i = 0; i < FeatureConfig.FEAT_COUNT; i++) {
+            addItem(new WatchUi.ToggleMenuItem(
+                FeatureConfig.getLabel(i),
+                null,
+                i,
+                fc.isEnabled(i),
+                null
+            ));
+        }
+    }
+}
+
+class FeatureToggleDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() {
+        Menu2InputDelegate.initialize();
+    }
+
+    function onSelect(item) {
+        var app = Application.getApp();
+        app.featureConfig.toggle(item.getId());
     }
 }

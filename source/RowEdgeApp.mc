@@ -7,6 +7,7 @@ class RowEdgeApp extends Application.AppBase {
     var strokeDetector;
     var rowingSession;
     var fieldConfig;
+    var featureConfig;
 
     function initialize() {
         AppBase.initialize();
@@ -14,6 +15,7 @@ class RowEdgeApp extends Application.AppBase {
 
     function onStart(state) {
         fieldConfig = new FieldConfig();
+        featureConfig = new FeatureConfig();
         strokeDetector = new StrokeDetector();
         rowingSession = new RowingSession();
     }
