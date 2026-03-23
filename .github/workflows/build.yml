@@ -50,7 +50,8 @@ jobs:
           connect-iq-sdk-manager device download --manifest=manifest.xml
 
       - name: Generate developer key
-        run: openssl genrsa -out /tmp/developer_key.pem 4096
+        run: |
+          openssl genrsa 4096 2>/dev/null | openssl pkcs8 -topk8 -nocrypt -outform DER -out /tmp/developer_key.der
 
       - name: Generate fonts
         run: |
@@ -77,7 +78,7 @@ jobs:
             -d ${{ matrix.device }} \
             -f monkey.jungle \
             -o build/RowEdge-${{ matrix.device }}.prg \
-            -y /tmp/developer_key.pem \
+            -y /tmp/developer_key.der \
             -w
 
       - name: Upload artifact
@@ -126,7 +127,8 @@ jobs:
           connect-iq-sdk-manager device download --manifest=manifest.xml
 
       - name: Generate developer key
-        run: openssl genrsa -out /tmp/developer_key.pem 4096
+        run: |
+          openssl genrsa 4096 2>/dev/null | openssl pkcs8 -topk8 -nocrypt -outform DER -out /tmp/developer_key.der
 
       - name: Generate fonts
         run: |
@@ -146,7 +148,7 @@ jobs:
             -f monkey.jungle \
             -e \
             -o build/RowEdge.iq \
-            -y /tmp/developer_key.pem \
+            -y /tmp/developer_key.der \
             -w
 
       - name: Create Release
