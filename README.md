@@ -141,7 +141,7 @@ Press MENU to access settings:
 - [ ] Phone settings via settings.xml (requires Connect IQ Store publish)
 - [ ] Edge 1040/1050 layout optimization
 - [ ] Interval workouts
-- [ ] OpenSmartOar: BLE IMU oar sensors for direct force/angle measurement
+- [ ] [OpenSmartOar](../OpenSmartOar.project/): SmartHub + BLE oar sensors + obstacle detection
 
 ## License
 
