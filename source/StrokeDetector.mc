@@ -82,6 +82,10 @@ class StrokeDetector {
     var hfreqBuf = new [25];
     var hfreqCount = 0;
 
+    // Demo sample counter (for accurate stroke interval in demo mode)
+    var demoSampleCount = 0;
+    var demoLastStrokeSample = 0;
+
     // Ring buffer for stroke curve display (4 seconds at 25Hz, covers >=15 SPM)
     const CURVE_BUF_SIZE = 100;
     var curveBuf = new [100];
@@ -176,6 +180,8 @@ class StrokeDetector {
         gravZ = 1000.0;
         fwdY = 0.0;
         fwdZ = 0.0;
+        demoSampleCount = 0;
+        demoLastStrokeSample = 0;
     }
 
     // Returns true when calibration is complete
@@ -288,6 +294,73 @@ class StrokeDetector {
             wasPeak = isPeak;
             prevEma = emaValue;
         }
+    }
+
+    // Process a single pre-computed forward acceleration sample (demo mode).
+    // Feeds through the same EMA, stroke detection, ring buffer, and hfreq
+    // pipeline as real sensor data, but skips gravity subtraction.
+    function processDemoSample(fwdAccelMg) {
+        var now = System.getTimer();
+        var fwdAccel = fwdAccelMg.toFloat();
+        var mag = fwdAccel > 0 ? fwdAccel : -fwdAccel;
+
+        // High-frequency FIT buffer
+        if (hfreqCount < HFREQ_BUF_SIZE) {
+            hfreqBuf[hfreqCount] = fwdAccelMg;
+            hfreqCount++;
+        }
+
+        // Ring buffer for stroke curve display
+        curveBuf[curveBufIdx] = fwdAccelMg;
+        curveBufIdx = (curveBufIdx + 1) % CURVE_BUF_SIZE;
+        if (curveBufCount < CURVE_BUF_SIZE) { curveBufCount++; }
+
+        // Stats
+        fwdAccelSum += fwdAccel;
+        linMagSum += mag;
+        if (sampleCount == 0) {
+            fwdAccelMin = fwdAccel;
+            fwdAccelMax = fwdAccel;
+            linMagMin = mag;
+            linMagMax = mag;
+        } else {
+            if (fwdAccel < fwdAccelMin) { fwdAccelMin = fwdAccel; }
+            if (fwdAccel > fwdAccelMax) { fwdAccelMax = fwdAccel; }
+            if (mag < linMagMin) { linMagMin = mag; }
+            if (mag > linMagMax) { linMagMax = mag; }
+        }
+        sampleCount++;
+        demoSampleCount++;
+
+        // EMA stroke detection (forward accel directly)
+        emaValue = EMA_ALPHA * fwdAccel + (1.0 - EMA_ALPHA) * emaValue;
+        var isPeak = (emaValue > catchThreshold);
+
+        if (wasPeak && !isPeak) {
+            // Use sample count for interval (accurate, unlike System.getTimer
+            // which has 1s granularity when 25 samples share the same tick)
+            var sampleInterval = demoSampleCount - demoLastStrokeSample;
+            var intervalMs = sampleInterval * 40;  // 25Hz = 40ms per sample
+
+            if (demoLastStrokeSample > 0 &&
+                intervalMs >= MIN_STROKE_INTERVAL &&
+                intervalMs <= MAX_STROKE_INTERVAL) {
+                strokeCount++;
+                snapshotStrokeCurve(intervalMs);
+                recordStrokeTime(now);
+                lastStrokeTime = now;
+                demoLastStrokeSample = demoSampleCount;
+            } else if (demoLastStrokeSample == 0 ||
+                       intervalMs > MAX_STROKE_INTERVAL) {
+                strokeCount++;
+                snapshotStrokeCurve(intervalMs);
+                recordStrokeTime(now);
+                lastStrokeTime = now;
+                demoLastStrokeSample = demoSampleCount;
+            }
+        }
+        wasPeak = isPeak;
+        prevEma = emaValue;
     }
 
     function processCalibration(xData, yData, zData, n, now) {

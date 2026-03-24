@@ -290,17 +290,37 @@ class RowingView extends WatchUi.View {
     }
 
     function applyDemoData() {
+        var app = Application.getApp();
+        var detector = app.strokeDetector;
+        var demo = app.demoData;
+
         if (state == STATE_RECORDING) {
-            demoTime++;
-            demoDistance += 4.545;  // 500m / 110s = 4.545 m/s
+            // Feed realistic IMU data through the real stroke detection pipeline
+            demo.tick(detector);
+
+            // Read back metrics computed by the real pipeline
+            detector.refreshStrokeRate();
+            strokeRate = detector.strokeRate;
+            strokeCount = detector.strokeCount;
+
+            // Flush accel stats (same as real path) to update display vars
+            var stats = detector.getAccelStats();
+            lastLinMagMax = stats[4];
+            lastLinMagMean = stats[5];
+
+            // Use demo-computed GPS/distance/HR
+            distance = demo.totalDistance;
+            elapsedTime = demo.elapsed;
+            heartRate = demo.hr;
+            speed = 4.545;  // constant for split display
+
+            updateAvgSpeed();
+            splitTime = avgSpeed > 0.3 ? 500.0 / avgSpeed : 0.0;
+
+            lapDistance = distance - lapStartDist;
+            lapStrokes = strokeCount - lapStartStrokes;
+            if (lapStrokes > 0) { dps = lapDistance / lapStrokes; }
         }
-        splitTime = 110.0;       // 1:50 /500m
-        strokeRate = 25.0;
-        heartRate = 140;
-        distance = demoDistance;
-        elapsedTime = demoTime;
-        strokeCount = (demoTime * 25.0 / 60.0).toNumber();
-        dps = 4.545 * 60.0 / 25.0;  // ~10.9 m/stroke
     }
 
     function onLap() {
@@ -318,6 +338,7 @@ class RowingView extends WatchUi.View {
         for (var i = 0; i < SPEED_WINDOW; i++) { distHistory[i] = 0.0; }
         autoPaused = false; autoPauseCooldown = 0; autoPauseHoldoff = 0;
         demoDistance = 0.0; demoTime = 0;
+        Application.getApp().demoData.reset();
     }
 
     //
