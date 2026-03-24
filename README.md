@@ -16,20 +16,32 @@ features specific to the sport.
 
 ## Features
 
+### Core Rowing Metrics
 - **Split time /500m** from GPS distance (10s sliding window, proper v=dx/dt)
-- **Stroke rate (SPM)** from accelerometer -- event-based interval averaging over last 6 strokes
+- **Stroke rate (SPM)** from forward acceleration -- event-based interval averaging
 - **Heart rate** from paired ANT+ HR sensor
 - **Activity recording** as FIT SPORT_ROWING with custom fields
-- **Wahoo-style zoom** -- UP/DOWN buttons to show fewer/more fields with auto-scaling fonts
-- **Configurable data fields** -- reorder, add, remove fields via on-device menu
+
+### Acceleration Curve (Force Curve Proxy)
+- **Real-time stroke graph** -- catch + drive + recovery tail with green/red fill
+- **Force ratio (FR%)** overlaid on drive curve -- stroke quality at a glance
+- **Delta-V** -- velocity gained per stroke (impulse)
+- **7 stroke metrics** as data fields: FR, delta-V, D:R ratio, drive time, catch duration, catch slope, peak accel
+
+### UI and Configuration
+- **Wahoo-style zoom** -- UP/DOWN buttons, z1-z7 (1 to 11 fields)
+- **Configurable data fields** -- reorder, add, remove, Move to Top via menu
 - **Auto gravity calibration** -- 2-second static sampling at activity start
 - **Auto-pause/resume** -- GPS speed based with holdoff/cooldown hysteresis
-- **Pause/resume** with lap marking
-- **Pause display** -- distance, time, avg split, clock while paused
-- **Activity summary** -- shown for 10s after save (distance, time, strokes, split, HR)
-- **Demo mode** -- simulated data for testing without GPS/water
-- **Feature toggles** -- enable/disable auto-pause, demo mode, accel logging via menu
-- **Accelerometer logging** -- optional raw accel data in FIT for offline analysis
+- **Pause display** -- distance, time, avg split, clock
+- **Activity summary** -- shown for 10s after save
+
+### Advanced Features
+- **Forward acceleration detection** -- orientation-aware boat vector from gravity calibration
+- **Demo mode** -- realistic stroke replay on Dorney Lake Olympic course
+- **High-frequency accel logging** -- 25Hz forward accel packed to FIT (13 SINT32 fields)
+- **Rowing metrics logging** -- per-stroke FR, delta-V, D:R, catch metrics to FIT
+- **Feature toggles** -- auto-pause, demo, curve metrics, accel/HF/rowing log
 - **FIT data extraction** -- Python tool with gnuplot visualization (tools/fit_extract.py)
 
 ## Supported Devices
@@ -40,19 +52,27 @@ features specific to the sport.
 
 ## Available Data Fields
 
-| Field             | Source                      |
-|-------------------|-----------------------------|
-| Split /500m       | GPS                         |
-| Stroke Rate (SPM) | Accelerometer               |
-| Heart Rate        | ANT+ sensor                 |
-| Distance          | GPS                         |
-| Elapsed Time      | Timer                       |
-| Time of Day       | System clock                |
-| Meters/Stroke     | GPS + accel                 |
-| Stroke Count      | Accelerometer               |
-| Speed             | GPS                         |
-| Avg Split         | Calculated                  |
-| Avg/Max Accel     | Accelerometer (calibration) |
+| Field             | Source                          |
+|-------------------|---------------------------------|
+| Accel Curve       | 25Hz forward accel graph        |
+| Split /500m       | GPS distance                    |
+| Stroke Rate (SPM) | Forward acceleration            |
+| Heart Rate        | ANT+ sensor                     |
+| Distance          | GPS                             |
+| Elapsed Time      | Timer                           |
+| Time of Day       | System clock                    |
+| Meters/Stroke     | GPS + accel                     |
+| Stroke Count      | Forward acceleration            |
+| Speed             | GPS                             |
+| Avg Split         | Calculated                      |
+| Force Ratio       | Stroke curve (avg/peak, 0-100%) |
+| Delta-V           | Stroke impulse (m/s)            |
+| D:R Ratio         | Drive:Recovery time ratio       |
+| Drive Time        | Stroke curve                    |
+| Catch Duration    | Stroke curve                    |
+| Catch Slope       | Stroke curve (mG/s)             |
+| Peak Accel        | Stroke curve (mG)               |
+| Avg/Max Accel     | Accelerometer (calibration)     |
 
 ## Zoom Levels
 
@@ -104,17 +124,15 @@ Press MENU to access settings:
 - **Data Fields**: reorder, add, remove fields (priority order)
 - **Threshold**: stroke detection sensitivity (milliG, default 200)
 - **Zoom Level**: number of visible fields
-- **Features**: toggle auto-pause, demo mode, accel logging
+- **Features**: toggle auto-pause, demo mode, curve metrics, accel/HF/rowing log
 
 ## TODO
 
-- [ ] Force curve graph -- real-time stroke force profile from accelerometer
 - [ ] Varia radar obstacle detection (mount on boat nose for forward warning)
 - [ ] Phone settings via settings.xml (requires Connect IQ Store publish)
-- [ ] Roll-axis calibration for signed forward acceleration
 - [ ] Edge 1040/1050 layout optimization
 - [ ] Interval workouts
-- [ ] Smart oar sensors (BLE IMU)
+- [ ] OpenSmartOar: BLE IMU oar sensors for direct force/angle measurement
 
 ## License
 
