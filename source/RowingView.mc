@@ -286,6 +286,10 @@ class RowingView extends WatchUi.View {
             if (app.featureConfig.isEnabled(FeatureConfig.FEAT_HFREQ_ACCEL)) {
                 session.setHfreqData(detector.getHfreqPacked());
             }
+            // Rowing metrics log
+            if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ROWING_LOG)) {
+                session.setRowingMetrics(detector, lastLinMagMean, lastLinMagMax);
+            }
         }
     }
 
@@ -770,17 +774,24 @@ class RowingView extends WatchUi.View {
             prevPy = py;
         }
 
-        // FR: centered in positive area (overlaid on drive curve)
-        var frY = gy + (yMax * gh / yRange * 4 / 10).toNumber();
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + w / 2, frY, fontC,
-                    (det.strokeForceRatio * 100).format("%.0f") + "%",
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        // Overlay metrics if enabled
+        if (app.featureConfig.isEnabled(FeatureConfig.FEAT_CURVE_METRICS)) {
+            // Pick font: fontC for z1-z5, fontD for z6-z7
+            var z = app.fieldConfig.zoomLevel;
+            var mFont = (z <= 5) ? fontC : fontD;
 
-        // dV: right-aligned in negative area below zero line
-        dc.drawText(x + w - 6, zeroY + 2, fontC,
-                    det.strokeDeltaV.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_RIGHT);
+            // FR: centered in positive area (overlaid on drive curve)
+            var frY = gy + (yMax * gh / yRange * 4 / 10).toNumber();
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + w / 2, frY, mFont,
+                        (det.strokeForceRatio * 100).format("%.0f") + "%",
+                        Graphics.TEXT_JUSTIFY_CENTER);
+
+            // dV: right-aligned in negative area below zero line
+            dc.drawText(x + w - 6, zeroY + 2, mFont,
+                        det.strokeDeltaV.format("%.2f"),
+                        Graphics.TEXT_JUSTIFY_RIGHT);
+        }
     }
 
     function drawDistanceCell(dc, x, y, w, h, lblFont, valFont) {

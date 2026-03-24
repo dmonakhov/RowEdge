@@ -24,6 +24,16 @@ class RowingSession {
     // High-frequency forward accel: 25 samples/sec packed as 13 SINT32 fields
     // Each SINT32 = 2x sint16 packed: low=sample[2k], high=sample[2k+1]
     var hfreqFields = null; // array of 13 FitField, or null if disabled
+    // Rowing metrics log (per-stroke values, written each second)
+    var rmForceRatio = null;
+    var rmDeltaV = null;
+    var rmDriveTime = null;
+    var rmRecovTime = null;
+    var rmCatchDur = null;
+    var rmCatchSlope = null;
+    var rmPeakAccel = null;
+    var rmAccelAvg = null;
+    var rmAccelMax = null;
 
     function initialize() {
     }
@@ -115,6 +125,36 @@ class RowingSession {
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
+            } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ROWING_LOG)) {
+                // Rowing metrics: 9 fields, per-stroke values written each second
+                // 2 base + 9 = 11 fields, 41 bytes
+                rmForceRatio = session.createField(
+                    "force_ratio", 2, FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
+                rmDeltaV = session.createField(
+                    "delta_v", 3, FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m/s"});
+                rmDriveTime = session.createField(
+                    "drive_time", 4, FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "s"});
+                rmRecovTime = session.createField(
+                    "recov_time", 5, FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "s"});
+                rmCatchDur = session.createField(
+                    "catch_dur", 6, FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "s"});
+                rmCatchSlope = session.createField(
+                    "catch_slope", 7, FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG/s"});
+                rmPeakAccel = session.createField(
+                    "peak_accel", 8, FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"});
+                rmAccelAvg = session.createField(
+                    "accel_avg", 9, FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"});
+                rmAccelMax = session.createField(
+                    "accel_max", 10, FitContributor.DATA_TYPE_SINT16,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"});
             }
 
             session.start();
@@ -176,6 +216,20 @@ class RowingSession {
                 hfreqFields[k].setData(packed[k]);
             }
         }
+    }
+
+    // Write rowing metrics from StrokeDetector (called each second,
+    // values persist from last stroke detection)
+    function setRowingMetrics(det, accelAvg, accelMax) {
+        if (rmForceRatio != null) { rmForceRatio.setData(det.strokeForceRatio); }
+        if (rmDeltaV != null) { rmDeltaV.setData(det.strokeDeltaV); }
+        if (rmDriveTime != null) { rmDriveTime.setData(det.strokeDriveTime); }
+        if (rmRecovTime != null) { rmRecovTime.setData(det.strokeRecovTime); }
+        if (rmCatchDur != null) { rmCatchDur.setData(det.strokeCatchDur); }
+        if (rmCatchSlope != null) { rmCatchSlope.setData(det.strokeCatchSlope); }
+        if (rmPeakAccel != null) { rmPeakAccel.setData(det.strokePeak.toNumber()); }
+        if (rmAccelAvg != null) { rmAccelAvg.setData(accelAvg.toNumber()); }
+        if (rmAccelMax != null) { rmAccelMax.setData(accelMax.toNumber()); }
     }
 
     // stats: [rawX, rawY, rawZ, linMagMin, linMagMax, linMagMean, ema,
