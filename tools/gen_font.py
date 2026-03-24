@@ -9,7 +9,7 @@ Outputs: big_numbers.fnt + big_numbers_0.png
 import sys
 from PIL import Image, ImageFont, ImageDraw
 
-CHARS = "0123456789:.-km "
+CHARS = "0123456789:.-km% "
 
 def gen_bmfont(ttf_path, size, out_prefix):
     font = ImageFont.truetype(ttf_path, size)

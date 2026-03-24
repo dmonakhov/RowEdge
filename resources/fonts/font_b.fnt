@@ -1,7 +1,7 @@
 info face="CustomFont" size=-55 bold=1 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0
-common lineHeight=66 base=52 scaleW=512 scaleH=64 pages=1 packed=0 alphaChnl=1 redChnl=0 greenChnl=0 blueChnl=0
+common lineHeight=66 base=52 scaleW=1024 scaleH=64 pages=1 packed=0 alphaChnl=1 redChnl=0 greenChnl=0 blueChnl=0
 page id=0 file="font_b_0.png"
-chars count=16
+chars count=17
 char id=48   x=0     y=0     width=32    height=46     xoffset=-2     yoffset=9    xadvance=30    page=0  chnl=15
 char id=49   x=32     y=0     width=32    height=46     xoffset=-2     yoffset=10    xadvance=30    page=0  chnl=15
 char id=50   x=64     y=0     width=32    height=46     xoffset=-2     yoffset=9    xadvance=30    page=0  chnl=15
@@ -17,4 +17,5 @@ char id=46   x=339     y=0     width=20    height=46     xoffset=-2     yoffset=
 char id=45   x=359     y=0     width=24    height=46     xoffset=-2     yoffset=29    xadvance=22    page=0  chnl=15
 char id=107   x=383     y=0     width=31    height=46     xoffset=-2     yoffset=9    xadvance=29    page=0  chnl=15
 char id=109   x=414     y=0     width=45    height=46     xoffset=-2     yoffset=20    xadvance=43    page=0  chnl=15
-char id=32   x=459     y=0     width=17    height=46     xoffset=-2     yoffset=50    xadvance=15    page=0  chnl=15
+char id=37   x=459     y=0     width=39    height=46     xoffset=-2     yoffset=9    xadvance=37    page=0  chnl=15
+char id=32   x=498     y=0     width=17    height=46     xoffset=-2     yoffset=50    xadvance=15    page=0  chnl=15
