@@ -771,7 +771,7 @@ class RowingView extends WatchUi.View {
         }
 
         // FR: centered in positive area (overlaid on drive curve)
-        var frY = gy + (yMax * gh / yRange / 2).toNumber();
+        var frY = gy + (yMax * gh / yRange * 4 / 10).toNumber();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + w / 2, frY, fontC,
                     det.strokeForceRatio.format("%.2f"),
