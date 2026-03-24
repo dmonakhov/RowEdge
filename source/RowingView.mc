@@ -770,17 +770,17 @@ class RowingView extends WatchUi.View {
             prevPy = py;
         }
 
-        // Metrics: FR and dV side by side in negative area below zero line
-        var fr = det.strokeForceRatio;
-        var mx = x + w * 2 / 5;
-        var my = zeroY + 2;
+        // FR: centered in positive area (overlaid on drive curve)
+        var frY = gy + (yMax * gh / yRange / 2).toNumber();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(mx, my, fontC,
-                    fr.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_RIGHT);
-        dc.drawText(mx + 4, my, fontC,
+        dc.drawText(x + w / 2, frY, fontC,
+                    det.strokeForceRatio.format("%.2f"),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+
+        // dV: right-aligned in negative area below zero line
+        dc.drawText(x + w - 6, zeroY + 2, fontC,
                     det.strokeDeltaV.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_LEFT);
+                    Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
     function drawDistanceCell(dc, x, y, w, h, lblFont, valFont) {
