@@ -7,6 +7,15 @@
 An open-source Connect IQ app that turns Garmin Edge cycling computers into
 outdoor rowing performance computers.
 
+## Screenshots
+
+<p align="center">
+  <img src="images/demo01/activity-acc-curve-default.png" width="180" alt="Accel Curve z4"/>
+  <img src="images/demo01/activity-acc-curve-z2.png" width="180" alt="Accel Curve z2"/>
+  <img src="images/demo01/activity-split-default.png" width="180" alt="Split view z4"/>
+  <img src="images/demo01/activity-z7.png" width="180" alt="All fields z7"/>
+</p>
+
 ## Why?
 
 Outdoor rowing has very few sport performance computers. The dominant product
