@@ -55,9 +55,9 @@ class FieldConfig {
     static var ZOOM_FIELD_COUNT = [0, 1, 2, 3, 5, 7, 9, 11];
 
     static var DEFAULT_FIELDS = [
-        F_SPLIT, F_HR, F_SPM, F_DISTANCE,
-        F_TIME, F_CLOCK, F_DPS, F_STROKES,
-        F_AVG_SPLIT, F_SPEED, F_ACCEL_AVG
+        F_ACCEL_CURVE, F_SPLIT, F_HR, F_SPM, F_DISTANCE,
+        F_TIME, F_CLOCK, F_DPS, F_STROKES, F_DRIVE_TIME,
+        F_AVG_SPLIT, F_SPEED
     ];
 
     function initialize() {
