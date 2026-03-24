@@ -770,27 +770,16 @@ class RowingView extends WatchUi.View {
             prevPy = py;
         }
 
-        // Metrics: drawn in the negative area below zero line (right side)
-        // This area is mostly empty (catch dip is on the left)
+        // Metrics: FR and dV side by side in negative area below zero line
         var fr = det.strokeForceRatio;
-        var dr = det.strokeDriveTime > 0 ?
-                 det.strokeRecovTime / det.strokeDriveTime : 0;
-        var mf = Graphics.FONT_MEDIUM;
-        var mfh = dc.getFontHeight(mf);
-        var mx = x + w / 2;  // right half of cell
-        var my = zeroY + 2;  // just below zero line
-
+        var mx = x + w * 2 / 5;
+        var my = zeroY + 2;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(mx, my, mf,
-                    "FR " + fr.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_LEFT);
-        my += mfh;
-        dc.drawText(mx, my, mf,
-                    "D:R 1:" + dr.format("%.1f"),
-                    Graphics.TEXT_JUSTIFY_LEFT);
-        my += mfh;
-        dc.drawText(mx, my, mf,
-                    "dV " + det.strokeDeltaV.format("%.3f"),
+        dc.drawText(mx, my, fontC,
+                    fr.format("%.2f"),
+                    Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.drawText(mx + 4, my, fontC,
+                    det.strokeDeltaV.format("%.2f"),
                     Graphics.TEXT_JUSTIFY_LEFT);
     }
 
