@@ -485,10 +485,16 @@ class StrokeDetector {
             strokeCatchSlope = 0.0;
         }
 
-        // Display range: catch + drive + 300ms recovery start
-        // 2 samples context before catch dip, 8 samples after drive end
+        // Display range: catch + drive + small recovery tail
+        // Start: 2 samples before catch dip for context
+        // End: 5 samples past the true zero-crossing after drive
         strokeDispStart = minIdx > 2 ? minIdx - 2 : 0;
-        strokeDispEnd = driveEnd + 8;
+        // Find true zero-crossing after drive (first sample <= 0 after driveEnd)
+        var zeroIdx = driveEnd + 1;
+        while (zeroIdx < nSamples && strokeCurve[zeroIdx] > 0) {
+            zeroIdx++;
+        }
+        strokeDispEnd = zeroIdx + 5;
         if (strokeDispEnd >= nSamples) { strokeDispEnd = nSamples - 1; }
     }
 

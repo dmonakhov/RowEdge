@@ -693,7 +693,8 @@ class RowingView extends WatchUi.View {
         return fontD;      // 26px grid small cells
     }
 
-    // Acceleration curve: catch + drive + recovery start, with metrics panel
+    // Acceleration curve: catch + drive + recovery tail, full width.
+    // Metrics (FR, D:R, dV) drawn in the negative area below zero line.
     function drawAccelCurve(dc, x, y, w, h, lblFont) {
         var app = Application.getApp();
         var det = app.strokeDetector;
@@ -710,45 +711,12 @@ class RowingView extends WatchUi.View {
             return;
         }
 
-        // Layout: 75% graph | 25% metrics
-        var gw = w * 3 / 4;
-        var mx = x + gw;      // metrics panel x
-        var mw = w - gw;       // metrics panel width
-
-        // Metrics panel (right 25%): FR, D:R, dV stacked in FONT_SMALL
-        var mf = Graphics.FONT_SMALL;
-        var mfh = dc.getFontHeight(mf);
-        var my = y + lblH + 4;
-
-        var fr = det.strokeForceRatio;
-        var dr = det.strokeDriveTime > 0 ?
-                 det.strokeRecovTime / det.strokeDriveTime : 0;
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(mx + mw / 2, my, mf,
-                    fr.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        my += mfh + 2;
-        dc.drawText(mx + mw / 2, my, mf,
-                    "1:" + dr.format("%.1f"),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        my += mfh + 2;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(mx + mw / 2, my, mf,
-                    det.strokeDeltaV.format("%.3f"),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Metric labels below values
-        my += mfh;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(mx + mw / 2, y + lblH + 4 - 2, Graphics.FONT_XTINY,
-                    "FR", Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Graph area: catch + drive + recovery start
+        // Graph area: full width
         var gx = x + 4;
         var gy = y + lblH + 2;
-        var ggh = h - lblH - 6;
-        var ggw = gw - 8;
-        if (ggh < 20) { return; }
+        var gw = w - 8;
+        var gh = h - lblH - 4;
+        if (gh < 20) { return; }
 
         // Display range from detector
         var dStart = det.strokeDispStart;
@@ -768,23 +736,23 @@ class RowingView extends WatchUi.View {
         if (yMin > -10) { yMin = -10; }
         var yRange = yMax - yMin;
 
-        // Zero line
-        var zeroY = gy + (yMax * ggh / yRange).toNumber();
+        // Zero line position
+        var zeroY = gy + (yMax * gh / yRange).toNumber();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(gx, zeroY, gx + ggw, zeroY);
+        dc.drawLine(gx, zeroY, gx + gw, zeroY);
 
         // Draw filled areas + curve line
-        var xScale = ggw.toFloat() / (n - 1);
+        var xScale = gw.toFloat() / (n - 1);
         var prevPx = gx;
         var prevPy = zeroY;
 
         for (var i = 0; i < n; i++) {
             var v = det.strokeCurve[dStart + i];
             var px = gx + (i * xScale).toNumber();
-            var py = gy + ((yMax - v) * ggh / yRange).toNumber();
+            var py = gy + ((yMax - v) * gh / yRange).toNumber();
 
             if (py < gy) { py = gy; }
-            if (py > gy + ggh) { py = gy + ggh; }
+            if (py > gy + gh) { py = gy + gh; }
 
             if (v > 0) {
                 dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
@@ -801,6 +769,29 @@ class RowingView extends WatchUi.View {
             prevPx = px;
             prevPy = py;
         }
+
+        // Metrics: drawn in the negative area below zero line (right side)
+        // This area is mostly empty (catch dip is on the left)
+        var fr = det.strokeForceRatio;
+        var dr = det.strokeDriveTime > 0 ?
+                 det.strokeRecovTime / det.strokeDriveTime : 0;
+        var mf = Graphics.FONT_MEDIUM;
+        var mfh = dc.getFontHeight(mf);
+        var mx = x + w / 2;  // right half of cell
+        var my = zeroY + 2;  // just below zero line
+
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(mx, my, mf,
+                    "FR " + fr.format("%.2f"),
+                    Graphics.TEXT_JUSTIFY_LEFT);
+        my += mfh;
+        dc.drawText(mx, my, mf,
+                    "D:R 1:" + dr.format("%.1f"),
+                    Graphics.TEXT_JUSTIFY_LEFT);
+        my += mfh;
+        dc.drawText(mx, my, mf,
+                    "dV " + det.strokeDeltaV.format("%.3f"),
+                    Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     function drawDistanceCell(dc, x, y, w, h, lblFont, valFont) {
