@@ -115,6 +115,7 @@ class FieldEditMenu extends WatchUi.Menu2 {
         Menu2.initialize({:title => FieldConfig.getMenuLabel(fid)});
 
         if (index > 0) {
+            addItem(new WatchUi.MenuItem("Move to Top", null, :moveTop, null));
             addItem(new WatchUi.MenuItem("Move Up", null, :moveUp, null));
         }
         if (index < app.fieldConfig.fields.size() - 1) {
@@ -139,7 +140,9 @@ class FieldEditMenuDelegate extends WatchUi.Menu2InputDelegate {
         var cfg = app.fieldConfig;
         var id = item.getId();
 
-        if (id == :moveUp) {
+        if (id == :moveTop) {
+            cfg.moveTop(fieldIndex);
+        } else if (id == :moveUp) {
             cfg.moveUp(fieldIndex);
         } else if (id == :moveDown) {
             cfg.moveDown(fieldIndex);

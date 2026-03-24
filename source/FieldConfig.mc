@@ -98,6 +98,17 @@ class FieldConfig {
         return fields.slice(0, getVisibleCount());
     }
 
+    function moveTop(index) {
+        if (index > 0 && index < fields.size()) {
+            var item = fields[index];
+            for (var i = index; i > 0; i--) {
+                fields[i] = fields[i - 1];
+            }
+            fields[0] = item;
+            save();
+        }
+    }
+
     function moveUp(index) {
         if (index > 0 && index < fields.size()) {
             var tmp = fields[index - 1];
