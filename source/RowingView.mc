@@ -693,83 +693,99 @@ class RowingView extends WatchUi.View {
         return fontD;      // 26px grid small cells
     }
 
-    // Distance cell: number + stacked "k" over "m" suffix when >= 3km
-    // Acceleration curve graph: last stroke waveform + overlay metrics
+    // Acceleration curve: catch + drive + recovery start, with metrics panel
     function drawAccelCurve(dc, x, y, w, h, lblFont) {
         var app = Application.getApp();
         var det = app.strokeDetector;
         var lblH = dc.getFontHeight(lblFont);
 
-        // Label + metrics header
+        // Label top-left
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + 3, y + 1, lblFont, "ACCEL CURVE", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(x + 3, y + 1, lblFont, "ACCEL", Graphics.TEXT_JUSTIFY_LEFT);
 
         if (det.strokeCurve == null || det.strokeCurveLen < 5) {
-            // No stroke data yet
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x + w / 2, y + h / 2 - 10, Graphics.FONT_SMALL,
                         "--", Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
 
-        // Overlay metrics top-right
+        // Layout: 75% graph | 25% metrics
+        var gw = w * 3 / 4;
+        var mx = x + gw;      // metrics panel x
+        var mw = w - gw;       // metrics panel width
+
+        // Metrics panel (right 25%): FR, D:R, dV stacked in FONT_SMALL
+        var mf = Graphics.FONT_SMALL;
+        var mfh = dc.getFontHeight(mf);
+        var my = y + lblH + 4;
+
         var fr = det.strokeForceRatio;
         var dr = det.strokeDriveTime > 0 ?
                  det.strokeRecovTime / det.strokeDriveTime : 0;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + w - 3, y + 1, Graphics.FONT_XTINY,
-                    "FR " + fr.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_RIGHT);
-        dc.drawText(x + w - 3, y + 15, Graphics.FONT_XTINY,
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(mx + mw / 2, my, mf,
+                    fr.format(".%02d"),
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        my += mfh + 2;
+        dc.drawText(mx + mw / 2, my, mf,
                     "1:" + dr.format("%.1f"),
-                    Graphics.TEXT_JUSTIFY_RIGHT);
+                    Graphics.TEXT_JUSTIFY_CENTER);
+        my += mfh + 2;
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(mx + mw / 2, my, mf,
+                    det.strokeDeltaV.format(".%03d"),
+                    Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Delta-V bottom-right
-        dc.drawText(x + w - 3, y + h - 16, Graphics.FONT_XTINY,
-                    "dv " + det.strokeDeltaV.format("%.2f"),
-                    Graphics.TEXT_JUSTIFY_RIGHT);
+        // Metric labels below values
+        my += mfh;
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(mx + mw / 2, y + lblH + 4 - 2, Graphics.FONT_XTINY,
+                    "FR", Graphics.TEXT_JUSTIFY_LEFT);
 
-        // Graph area
+        // Graph area: catch + drive + recovery start
         var gx = x + 4;
         var gy = y + lblH + 2;
-        var gw = w - 8;
-        var gh = h - lblH - 20;
-        if (gh < 20) { return; }
+        var ggh = h - lblH - 6;
+        var ggw = gw - 8;
+        if (ggh < 20) { return; }
 
-        // Find Y range from data
+        // Display range from detector
+        var dStart = det.strokeDispStart;
+        var dEnd = det.strokeDispEnd;
+        var n = dEnd - dStart + 1;
+        if (n < 3) { n = det.strokeCurveLen; dStart = 0; dEnd = n - 1; }
+
+        // Find Y range from display portion
         var yMin = 0;
         var yMax = 0;
-        var n = det.strokeCurveLen;
-        for (var i = 0; i < n; i++) {
+        for (var i = dStart; i <= dEnd; i++) {
             var v = det.strokeCurve[i];
             if (v < yMin) { yMin = v; }
             if (v > yMax) { yMax = v; }
         }
-        // Ensure symmetric range with padding
         if (yMax < 10) { yMax = 10; }
         if (yMin > -10) { yMin = -10; }
         var yRange = yMax - yMin;
 
-        // Zero line position
-        var zeroY = gy + (yMax * gh / yRange).toNumber();
+        // Zero line
+        var zeroY = gy + (yMax * ggh / yRange).toNumber();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(gx, zeroY, gx + gw, zeroY);
+        dc.drawLine(gx, zeroY, gx + ggw, zeroY);
 
-        // Draw filled areas + curve
-        var xScale = gw.toFloat() / (n - 1);
+        // Draw filled areas + curve line
+        var xScale = ggw.toFloat() / (n - 1);
         var prevPx = gx;
         var prevPy = zeroY;
 
         for (var i = 0; i < n; i++) {
-            var v = det.strokeCurve[i];
+            var v = det.strokeCurve[dStart + i];
             var px = gx + (i * xScale).toNumber();
-            var py = gy + ((yMax - v) * gh / yRange).toNumber();
+            var py = gy + ((yMax - v) * ggh / yRange).toNumber();
 
-            // Clamp to graph bounds
             if (py < gy) { py = gy; }
-            if (py > gy + gh) { py = gy + gh; }
+            if (py > gy + ggh) { py = gy + ggh; }
 
-            // Fill: green above zero, light red below
             if (v > 0) {
                 dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
                 dc.fillRectangle(px, py, 2, zeroY - py);
@@ -778,7 +794,6 @@ class RowingView extends WatchUi.View {
                 dc.fillRectangle(px, zeroY, 2, py - zeroY);
             }
 
-            // Curve line
             if (i > 0) {
                 dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
                 dc.drawLine(prevPx, prevPy, px, py);

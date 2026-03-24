@@ -102,6 +102,9 @@ class StrokeDetector {
     var strokeDeltaV = 0.0;      // m/s, impulse
     var strokeCatchDur = 0.0;    // seconds, time from min accel to zero-crossing
     var strokeCatchSlope = 0.0;  // mG/s, rate of accel increase at catch
+    // Display range within strokeCurve: catch + drive + recovery start
+    var strokeDispStart = 0;
+    var strokeDispEnd = 0;
 
     function initialize() {
         for (var i = 0; i < strokeTimes.size(); i++) {
@@ -481,6 +484,12 @@ class StrokeDetector {
             strokeCatchDur = 0.0;
             strokeCatchSlope = 0.0;
         }
+
+        // Display range: catch + drive + 300ms recovery start
+        // 2 samples context before catch dip, 8 samples after drive end
+        strokeDispStart = minIdx > 2 ? minIdx - 2 : 0;
+        strokeDispEnd = driveEnd + 8;
+        if (strokeDispEnd >= nSamples) { strokeDispEnd = nSamples - 1; }
     }
 
     function refreshStrokeRate() {
