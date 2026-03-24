@@ -725,7 +725,7 @@ class RowingView extends WatchUi.View {
                  det.strokeRecovTime / det.strokeDriveTime : 0;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(mx + mw / 2, my, mf,
-                    fr.format(".%02d"),
+                    fr.format("%.2f"),
                     Graphics.TEXT_JUSTIFY_CENTER);
         my += mfh + 2;
         dc.drawText(mx + mw / 2, my, mf,
@@ -734,7 +734,7 @@ class RowingView extends WatchUi.View {
         my += mfh + 2;
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(mx + mw / 2, my, mf,
-                    det.strokeDeltaV.format(".%03d"),
+                    det.strokeDeltaV.format("%.3f"),
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         // Metric labels below values
