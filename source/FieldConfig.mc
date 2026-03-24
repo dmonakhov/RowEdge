@@ -19,6 +19,7 @@ class FieldConfig {
 
     // Field ID constants
     enum {
+        F_ACCEL_CURVE, // Acceleration curve graph
         F_SPLIT,      // Split /500m
         F_SPM,        // Stroke rate
         F_HR,         // Heart rate
@@ -32,7 +33,13 @@ class FieldConfig {
         F_CALORIES,   // Calories
         F_ACCEL_AVG,  // Avg accel (calibration)
         F_ACCEL_MAX,  // Max accel (calibration)
-        F_ACCEL_CURVE, // Acceleration curve graph
+        F_FORCE_RATIO, // Force ratio (avg/peak, 0-1)
+        F_DELTA_V,    // Impulse per stroke (m/s)
+        F_DRIVE_RECOV, // Drive:Recovery ratio
+        F_DRIVE_TIME, // Drive time (seconds)
+        F_CATCH_DUR,  // Catch duration (seconds)
+        F_CATCH_SLOPE, // Catch slope (mG/s)
+        F_PEAK_ACCEL, // Peak drive acceleration (mG)
         F_COUNT       // sentinel
     }
 
@@ -168,6 +175,13 @@ class FieldConfig {
             case F_ACCEL_AVG: return "AVG ACCEL";
             case F_ACCEL_MAX: return "MAX ACCEL";
             case F_ACCEL_CURVE: return "ACCEL CURVE";
+            case F_FORCE_RATIO: return "FORCE RATIO";
+            case F_DELTA_V: return "DELTA-V";
+            case F_DRIVE_RECOV: return "D:R RATIO";
+            case F_DRIVE_TIME: return "DRIVE TIME";
+            case F_CATCH_DUR: return "CATCH DUR";
+            case F_CATCH_SLOPE: return "CATCH SLOPE";
+            case F_PEAK_ACCEL: return "PEAK ACCEL";
             default:          return "?";
         }
     }
@@ -188,6 +202,13 @@ class FieldConfig {
             case F_ACCEL_AVG: return "Avg Accel";
             case F_ACCEL_MAX: return "Max Accel";
             case F_ACCEL_CURVE: return "Accel Curve";
+            case F_FORCE_RATIO: return "Force Ratio";
+            case F_DELTA_V: return "Delta-V";
+            case F_DRIVE_RECOV: return "D:R Ratio";
+            case F_DRIVE_TIME: return "Drive Time";
+            case F_CATCH_DUR: return "Catch Duration";
+            case F_CATCH_SLOPE: return "Catch Slope";
+            case F_PEAK_ACCEL: return "Peak Accel";
             default:          return "Unknown";
         }
     }

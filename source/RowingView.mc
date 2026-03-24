@@ -606,6 +606,37 @@ class RowingView extends WatchUi.View {
                 return lastLinMagMean.format("%.0f");
             case FieldConfig.F_ACCEL_MAX:
                 return lastLinMagMax.format("%.0f");
+            case FieldConfig.F_FORCE_RATIO:
+                var det_fr = Application.getApp().strokeDetector;
+                return det_fr.strokeForceRatio > 0 ?
+                       det_fr.strokeForceRatio.format("%.2f") : "--";
+            case FieldConfig.F_DELTA_V:
+                var det_dv = Application.getApp().strokeDetector;
+                return det_dv.strokeDeltaV > 0 ?
+                       det_dv.strokeDeltaV.format("%.3f") : "--";
+            case FieldConfig.F_DRIVE_RECOV:
+                var det_dr = Application.getApp().strokeDetector;
+                if (det_dr.strokeDriveTime > 0 && det_dr.strokeRecovTime > 0) {
+                    var ratio = det_dr.strokeRecovTime / det_dr.strokeDriveTime;
+                    return "1:" + ratio.format("%.1f");
+                }
+                return "--";
+            case FieldConfig.F_DRIVE_TIME:
+                var det_dt = Application.getApp().strokeDetector;
+                return det_dt.strokeDriveTime > 0 ?
+                       det_dt.strokeDriveTime.format("%.2f") : "--";
+            case FieldConfig.F_CATCH_DUR:
+                var det_cd = Application.getApp().strokeDetector;
+                return det_cd.strokeCatchDur > 0 ?
+                       det_cd.strokeCatchDur.format("%.2f") : "--";
+            case FieldConfig.F_CATCH_SLOPE:
+                var det_cs = Application.getApp().strokeDetector;
+                return det_cs.strokeCatchSlope > 0 ?
+                       det_cs.strokeCatchSlope.format("%.0f") : "--";
+            case FieldConfig.F_PEAK_ACCEL:
+                var det_pa = Application.getApp().strokeDetector;
+                return det_pa.strokePeak > 0 ?
+                       det_pa.strokePeak.format("%.0f") : "--";
             default:
                 return "?";
         }
