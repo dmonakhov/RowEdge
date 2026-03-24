@@ -774,7 +774,7 @@ class RowingView extends WatchUi.View {
         var frY = gy + (yMax * gh / yRange * 4 / 10).toNumber();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + w / 2, frY, fontC,
-                    det.strokeForceRatio.format("%.2f"),
+                    (det.strokeForceRatio * 100).format("%.0f") + "%",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         // dV: right-aligned in negative area below zero line
