@@ -48,13 +48,17 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    // onSelect() fires from KEY_ENTER (right-upper Enter/OK on 540) and
-    // touch tap (840/1040/1050). Opens settings menu -- same as onMenu().
+    // onSelect() fires from KEY_ENTER (right-upper on 540) and tap (touch devices).
+    // During recording: do nothing (prevent accidental settings on touch).
+    // Idle/paused: open settings.
     function onSelect() {
         if (view.state == RowingView.STATE_SUMMARY) {
             view.dismissSummary();
             WatchUi.requestUpdate();
             return true;
+        }
+        if (view.state == RowingView.STATE_RECORDING) {
+            return true;  // consume, no action during recording
         }
         return onMenu();
     }
@@ -197,83 +201,80 @@ class SaveConfirmDelegate extends WatchUi.ConfirmationDelegate {
 }
 
 //
-// Threshold adjustment: UP/DOWN +/-10, BACK exits
+// Threshold picker: scroll wheel with NumberFactory (touch-friendly)
 //
 
-class ThresholdView extends WatchUi.View {
+class NumberFactory extends WatchUi.PickerFactory {
+    var start;
+    var stop;
+    var step;
 
-    function initialize() {
-        View.initialize();
+    function initialize(s, e, inc) {
+        PickerFactory.initialize();
+        start = s;
+        stop = e;
+        step = inc;
     }
 
-    function onShow() {
-        if (self has :setControlBar) { setControlBar(null); }
+    function getIndex(value) {
+        return (value - start) / step;
     }
 
-    function onUpdate(dc) {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
-        dc.clear();
+    function getDrawable(index, selected) {
+        var val = start + (index * step);
+        return new WatchUi.Text({
+            :text => val.format("%d"),
+            :color => Graphics.COLOR_WHITE,
+            :font => Graphics.FONT_NUMBER_MILD,
+            :locX => WatchUi.LAYOUT_HALIGN_CENTER,
+            :locY => WatchUi.LAYOUT_VALIGN_CENTER
+        });
+    }
 
-        var w = dc.getWidth();
-        var h = dc.getHeight();
-        var app = Application.getApp();
-        var thr = app.strokeDetector.catchThreshold;
+    function getValue(index) {
+        return start + (index * step);
+    }
 
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 10, Graphics.FONT_SMALL, "Stroke Threshold",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(w / 2, h / 2 - 30, Graphics.FONT_NUMBER_MILD,
-                    thr.format("%.0f"),
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h / 2 + 30, Graphics.FONT_XTINY,
-                    "milliG linear accel",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(w / 2, h / 2 + 55, Graphics.FONT_XTINY,
-                    "UP: +10  DOWN: -10",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(w / 2, h / 2 + 75, Graphics.FONT_XTINY,
-                    "BACK: done",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(w / 2, h - 40, Graphics.FONT_XTINY,
-                    "Lower = more sensitive",
-                    Graphics.TEXT_JUSTIFY_CENTER);
+    function getSize() {
+        return (stop - start) / step + 1;
     }
 }
 
-class ThresholdDelegate extends WatchUi.BehaviorDelegate {
-
+class ThresholdPicker extends WatchUi.Picker {
     function initialize() {
-        BehaviorDelegate.initialize();
-    }
-
-    function onPreviousPage() {
-        adjustThreshold(10);
-        return true;
-    }
-
-    function onNextPage() {
-        adjustThreshold(-10);
-        return true;
-    }
-
-    function adjustThreshold(delta) {
         var app = Application.getApp();
-        var detector = app.strokeDetector;
-        var newVal = detector.catchThreshold + delta;
-        if (newVal < 10) { newVal = 10; }
-        if (newVal > 1500) { newVal = 1500; }
-        detector.catchThreshold = newVal;
-        Application.Storage.setValue("catchThreshold", newVal.toNumber());
-        WatchUi.requestUpdate();
+        var current = app.strokeDetector.catchThreshold.toNumber();
+        var factory = new NumberFactory(10, 1500, 10);
+        var title = new WatchUi.Text({
+            :text => "Threshold (mG)",
+            :color => Graphics.COLOR_WHITE,
+            :font => Graphics.FONT_SMALL,
+            :locX => WatchUi.LAYOUT_HALIGN_CENTER,
+            :locY => WatchUi.LAYOUT_VALIGN_BOTTOM
+        });
+        Picker.initialize({
+            :title => title,
+            :pattern => [factory],
+            :defaults => [factory.getIndex(current)]
+        });
+    }
+}
+
+class ThresholdPickerDelegate extends WatchUi.PickerDelegate {
+    function initialize() {
+        PickerDelegate.initialize();
     }
 
-    function onBack() {
+    function onAccept(values) {
+        var val = values[0];
+        var app = Application.getApp();
+        app.strokeDetector.catchThreshold = val.toFloat();
+        Application.Storage.setValue("catchThreshold", val);
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        return true;
+    }
+
+    function onCancel() {
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }

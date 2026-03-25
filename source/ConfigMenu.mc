@@ -32,14 +32,14 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             );
         } else if (id == :threshold) {
             WatchUi.pushView(
-                new ThresholdView(),
-                new ThresholdDelegate(),
+                new ThresholdPicker(),
+                new ThresholdPickerDelegate(),
                 WatchUi.SLIDE_LEFT
             );
         } else if (id == :zoom) {
             WatchUi.pushView(
-                new ZoomView(),
-                new ZoomDelegate(),
+                new ZoomMenu(),
+                new ZoomMenuDelegate(),
                 WatchUi.SLIDE_LEFT
             );
         } else if (id == :features) {
@@ -204,71 +204,33 @@ class AddFieldMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 }
 
-// Zoom level adjustment: UP/DOWN +/-1, BACK exits
-class ZoomView extends WatchUi.View {
+// Zoom level selection: Menu2 list (touch-friendly)
+class ZoomMenu extends WatchUi.Menu2 {
     function initialize() {
-        View.initialize();
-    }
-
-    function onShow() {
-        if (self has :setControlBar) { setControlBar(null); }
-    }
-
-    function onUpdate(dc) {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
-        dc.clear();
-
-        var w = dc.getWidth();
-        var h = dc.getHeight();
+        Menu2.initialize({:title => "Zoom Level"});
         var app = Application.getApp();
-        var cfg = app.fieldConfig;
-
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 10, Graphics.FONT_SMALL, "Zoom Level",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        var fieldCount = cfg.getVisibleCount();
-        dc.drawText(w / 2, h / 2 - 30, Graphics.FONT_NUMBER_MILD,
-                    "z" + cfg.zoomLevel.format("%d") + " (" + fieldCount + " fields)",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, h / 2 + 30, Graphics.FONT_XTINY,
-                    "z1=1  z2=2  z3=3  z4=5  z5=7",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(w / 2, h / 2 + 55, Graphics.FONT_XTINY,
-                    "UP: +1  DOWN: -1",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-
-        dc.drawText(w / 2, h / 2 + 75, Graphics.FONT_XTINY,
-                    "BACK: done",
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        var current = app.fieldConfig.zoomLevel;
+        var counts = FieldConfig.ZOOM_FIELD_COUNT;
+        for (var z = 1; z <= 7; z++) {
+            var label = "z" + z + " - " + counts[z] + " fields";
+            var sub = (z == current) ? "current" : null;
+            addItem(new WatchUi.MenuItem(label, sub, z, null));
+        }
     }
 }
 
-class ZoomDelegate extends WatchUi.BehaviorDelegate {
+class ZoomMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() {
-        BehaviorDelegate.initialize();
+        Menu2InputDelegate.initialize();
     }
 
-    function onPreviousPage() {
+    function onSelect(item) {
+        var z = item.getId();
         var app = Application.getApp();
-        app.fieldConfig.zoomOut();
-        WatchUi.requestUpdate();
-        return true;
-    }
-
-    function onNextPage() {
-        var app = Application.getApp();
-        app.fieldConfig.zoomIn();
-        WatchUi.requestUpdate();
-        return true;
-    }
-
-    function onBack() {
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
-        return true;
+        var cfg = app.fieldConfig;
+        cfg.zoomLevel = z;
+        cfg.save();
+        WatchUi.popView(WatchUi.SLIDE_RIGHT);
     }
 }
 
