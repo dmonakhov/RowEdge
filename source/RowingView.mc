@@ -290,6 +290,10 @@ class RowingView extends WatchUi.View {
             if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ROWING_LOG)) {
                 session.setRowingMetrics(detector, lastLinMagMean, lastLinMagMax);
             }
+            // Radar raw log
+            if (app.featureConfig.isEnabled(FeatureConfig.FEAT_RADAR_LOG)) {
+                session.setRadarData(app.radarMonitor, app.radarMonitor.bikeRadar);
+            }
         }
     }
 

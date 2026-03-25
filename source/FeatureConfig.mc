@@ -10,6 +10,7 @@ class FeatureConfig {
         FEAT_HFREQ_ACCEL,
         FEAT_CURVE_METRICS,
         FEAT_ROWING_LOG,
+        FEAT_RADAR_LOG,
         FEAT_COUNT
     }
 
@@ -27,6 +28,7 @@ class FeatureConfig {
         enabled[FEAT_HFREQ_ACCEL] = loadBool("feat_hfreqAccel", false);
         enabled[FEAT_CURVE_METRICS] = loadBool("feat_curveMetrics", true);
         enabled[FEAT_ROWING_LOG] = loadBool("feat_rowingLog", true);
+        enabled[FEAT_RADAR_LOG] = loadBool("feat_radarLog", false);
     }
 
     function loadBool(key, defaultVal) {
@@ -41,7 +43,7 @@ class FeatureConfig {
     function toggle(featId) {
         enabled[featId] = !enabled[featId];
         var keys = ["feat_autoPause", "feat_demoMode", "feat_accelLog", "feat_hfreqAccel",
-                    "feat_curveMetrics", "feat_rowingLog"];
+                    "feat_curveMetrics", "feat_rowingLog", "feat_radarLog"];
         Application.Storage.setValue(keys[featId], enabled[featId]);
     }
 
@@ -53,6 +55,7 @@ class FeatureConfig {
             case FEAT_HFREQ_ACCEL: return "HF Accel (25Hz)";
             case FEAT_CURVE_METRICS: return "Curve Metrics";
             case FEAT_ROWING_LOG: return "Rowing Metrics Log";
+            case FEAT_RADAR_LOG: return "Radar Raw Log";
             default: return "?";
         }
     }

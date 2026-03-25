@@ -34,6 +34,12 @@ class RowingSession {
     var rmPeakAccel = null;
     var rmAccelAvg = null;
     var rmAccelMax = null;
+    // Radar raw log: ranges and speeds for all 8 targets + count + threat
+    var rlRanges = null;    // UINT8 array x8 (range in meters, 255=empty)
+    var rlSpeeds = null;    // UINT8 array x8 (speed in m/s, 255=empty)
+    var rlCount = null;     // UINT8 target count
+    var rlClosest = null;   // UINT8 closest range
+    var rlThreat = null;    // UINT8 threat level (0-3)
 
     function initialize() {
     }
@@ -155,6 +161,24 @@ class RowingSession {
                 rmAccelMax = session.createField(
                     "accel_max", 10, FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"});
+            } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_RADAR_LOG)) {
+                // Radar raw log: 5 fields (ranges x8, speeds x8, count, closest, threat)
+                // 2 + 5 = 7 total fields, well under 16 limit
+                rlRanges = session.createField(
+                    "radar_ranges", 2, FitContributor.DATA_TYPE_UINT8,
+                    {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
+                rlSpeeds = session.createField(
+                    "radar_speeds", 3, FitContributor.DATA_TYPE_UINT8,
+                    {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m/s"});
+                rlCount = session.createField(
+                    "radar_count", 4, FitContributor.DATA_TYPE_UINT8,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
+                rlClosest = session.createField(
+                    "radar_closest", 5, FitContributor.DATA_TYPE_UINT8,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
+                rlThreat = session.createField(
+                    "radar_threat", 6, FitContributor.DATA_TYPE_UINT8,
+                    {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
             }
 
             session.start();
@@ -220,6 +244,34 @@ class RowingSession {
 
     // Write rowing metrics from StrokeDetector (called each second,
     // values persist from last stroke detection)
+    // Write raw radar data: all 8 target ranges/speeds + summary
+    function setRadarData(radarMonitor, bikeRadar) {
+        if (rlRanges == null) { return; }
+        var ranges = new [8];
+        var speeds = new [8];
+        for (var i = 0; i < 8; i++) {
+            ranges[i] = 255;
+            speeds[i] = 255;
+        }
+        // Try to get raw target data from BikeRadar
+        if (bikeRadar != null) {
+            var info = bikeRadar.getRadarInfo();
+            if (info != null) {
+                for (var i = 0; i < info.size() && i < 8; i++) {
+                    var r = info[i].range;
+                    var s = info[i].speed;
+                    ranges[i] = (r > 0 && r < 255) ? r.toNumber() : 255;
+                    speeds[i] = (s >= 0 && s < 255) ? s.toNumber() : 255;
+                }
+            }
+        }
+        rlRanges.setData(ranges);
+        rlSpeeds.setData(speeds);
+        rlCount.setData(radarMonitor.targetCount);
+        rlClosest.setData(radarMonitor.closestRange > 254 ? 254 : radarMonitor.closestRange);
+        rlThreat.setData(radarMonitor.threatLevel);
+    }
+
     function setRowingMetrics(det, accelAvg, accelMax) {
         if (rmForceRatio != null) { rmForceRatio.setData(det.strokeForceRatio); }
         if (rmDeltaV != null) { rmDeltaV.setData(det.strokeDeltaV); }
