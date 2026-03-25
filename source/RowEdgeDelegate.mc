@@ -43,6 +43,11 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         if (key == WatchUi.KEY_START) {
             return handleStartStop();
         } else if (key == WatchUi.KEY_LAP) {
+            if (view.state == RowingView.STATE_IDLE) {
+                // Lap button on idle = exit app (KEY_LAP doesn't auto-exit like KEY_ESC)
+                System.exit();
+                return true;
+            }
             return handleLap();
         }
         return false;

@@ -392,6 +392,11 @@ class RowingView extends WatchUi.View {
         dc.drawText(w / 2, textY, hintFont,
                     configHint,
                     Graphics.TEXT_JUSTIFY_CENTER);
+	dc.setColor(Graphics.COLOR_DK_RED, Graphics.COLOR_TRANSPARENT);
+        textY += hintH + 4;
+        dc.drawText(w / 2, textY, hintFont,
+                    "Lap to exit",
+                    Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawCalibratingScreen(dc, w, h) {
