@@ -127,7 +127,7 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onNextPage() {
-        // DOWN = zoom out (more fields)
+        // DOWN / swipe-up = zoom out (more fields)
         var app = Application.getApp();
         app.fieldConfig.zoomOut();
         WatchUi.requestUpdate();
@@ -135,7 +135,7 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() {
-        // UP = zoom in (fewer fields)
+        // UP / swipe-down = zoom in (fewer fields)
         var app = Application.getApp();
         app.fieldConfig.zoomIn();
         WatchUi.requestUpdate();

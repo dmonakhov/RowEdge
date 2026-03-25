@@ -366,17 +366,23 @@ class StrokeDetector {
         prevEma = emaValue;
     }
 
+    const CAL_SETTLE_MS = 300; // skip first 300ms (button press vibration)
+
     function processCalibration(xData, yData, zData, n, now) {
-        // Accumulate raw samples to compute gravity vector
-        for (var i = 0; i < n; i++) {
-            calSumX += xData[i].toFloat();
-            calSumY += yData[i].toFloat();
-            calSumZ += zData[i].toFloat();
-            calCount++;
+        var elapsed = now - calStartTime;
+
+        // Skip samples during settle period (button press causes vibration)
+        if (elapsed >= CAL_SETTLE_MS) {
+            for (var i = 0; i < n; i++) {
+                calSumX += xData[i].toFloat();
+                calSumY += yData[i].toFloat();
+                calSumZ += zData[i].toFloat();
+                calCount++;
+            }
         }
 
         // Check if calibration duration elapsed
-        if (now - calStartTime >= CAL_DURATION_MS && calCount > 0) {
+        if (elapsed >= CAL_DURATION_MS && calCount > 0) {
             // Set gravity from averaged static samples
             gravX = calSumX / calCount;
             gravY = calSumY / calCount;

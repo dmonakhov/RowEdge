@@ -370,22 +370,27 @@ class RowingView extends WatchUi.View {
     }
 
     function drawIdleScreen(dc, w, h) {
-        // Draw home screen image (full screen, pre-sized for Edge 540)
         var img = WatchUi.loadResource(Rez.Drawables.HomeScreen);
         dc.drawBitmap(0, 0, img);
 
-        // Overlay status info in blank area (y=46..123 in edge540.png)
-        var app = Application.getApp();
-        var thr = app.strokeDetector.catchThreshold;
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 48, Graphics.FONT_MEDIUM,
-                    "Thr: " + thr.format("%.0f") + " mG",
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, 78, Graphics.FONT_SMALL,
+        // Text overlay in empty blue zone at top of screen
+        var tall = (h > 400);
+        var hintFont = tall ? Graphics.FONT_LARGE : Graphics.FONT_MEDIUM;
+        var hintH = dc.getFontHeight(hintFont);
+
+        var emptyH = tall ? (h * 48 / 100) : (h * 34 / 100);
+        var blockH = hintH * 2 + 6;
+        var textY = (emptyH - blockH) / 2;
+        if (textY < 5) { textY = 5; }
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, textY, hintFont,
                     "START to row",
                     Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, 100, Graphics.FONT_SMALL,
-                    "MENU to configure",
+        textY += hintH + 4;
+        var configHint = tall ? "Tap to configure" : "MENU to configure";
+        dc.drawText(w / 2, textY, hintFont,
+                    configHint,
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
