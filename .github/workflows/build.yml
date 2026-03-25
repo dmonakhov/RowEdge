@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        device: [edge540]
+        device: [edge540, edge840]
     steps:
       - uses: actions/checkout@v4
 
