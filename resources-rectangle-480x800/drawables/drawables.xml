@@ -1,0 +1,4 @@
+<drawables>
+    <bitmap id="LauncherIcon" filename="launcher_icon.png" />
+    <bitmap id="HomeScreen" filename="home_screen.png" />
+</drawables>

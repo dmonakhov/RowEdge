@@ -40,6 +40,11 @@ fonts:
 	python3 tools/gen_font.py $(TTF) 63 resources-rectangle-282x470/fonts/font_b
 	python3 tools/gen_font.py $(TTF) 43 resources-rectangle-282x470/fonts/font_c
 	python3 tools/gen_font.py $(TTF) 29 resources-rectangle-282x470/fonts/font_d
+	@echo "=== Edge 1050 (480x800) ==="
+	python3 tools/gen_font.py $(TTF) 156 resources-rectangle-480x800/fonts/font_a
+	python3 tools/gen_font.py $(TTF) 107 resources-rectangle-480x800/fonts/font_b
+	python3 tools/gen_font.py $(TTF) 74 resources-rectangle-480x800/fonts/font_c
+	python3 tools/gen_font.py $(TTF) 51 resources-rectangle-480x800/fonts/font_d
 
 simulator:
 	$(SIMULATOR) &
