@@ -9,6 +9,7 @@ class RowEdgeApp extends Application.AppBase {
     var fieldConfig;
     var featureConfig;
     var demoData;
+    var radarMonitor;
 
     function initialize() {
         AppBase.initialize();
@@ -20,6 +21,7 @@ class RowEdgeApp extends Application.AppBase {
         strokeDetector = new StrokeDetector();
         rowingSession = new RowingSession();
         demoData = new DemoDataSource();
+        radarMonitor = new RadarMonitor();
     }
 
     function onStop(state) {

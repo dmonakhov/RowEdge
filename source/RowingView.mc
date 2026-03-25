@@ -741,6 +741,12 @@ class RowingView extends WatchUi.View {
                 var det_pa = Application.getApp().strokeDetector;
                 return det_pa.strokePeak > 0 ?
                        det_pa.strokePeak.format("%.0f") : "--";
+            case FieldConfig.F_RADAR:
+                var radar = Application.getApp().radarMonitor;
+                if (radar.targetCount > 0) {
+                    return radar.closestRange.format("%d") + "m";
+                }
+                return "--";
             default:
                 return "?";
         }
@@ -755,6 +761,29 @@ class RowingView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w / 2, 0, Graphics.FONT_XTINY, "PAUSED",
                         Graphics.TEXT_JUSTIFY_CENTER);
+        }
+
+        // Radar threat indicator: colored bar on right edge
+        var radar = Application.getApp().radarMonitor;
+        if (radar.threatLevel > 0) {
+            var h = dc.getHeight();
+            var barW = 6;
+            var color;
+            if (radar.threatLevel >= 3) {
+                color = Graphics.COLOR_RED;
+            } else if (radar.threatLevel >= 2) {
+                color = Graphics.COLOR_ORANGE;
+            } else {
+                color = Graphics.COLOR_GREEN;
+            }
+            dc.setColor(color, color);
+            dc.fillRectangle(w - barW, 0, barW, h);
+
+            // Show distance at top-right
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(w - barW - 2, 0, Graphics.FONT_XTINY,
+                        radar.closestRange.format("%d") + "m",
+                        Graphics.TEXT_JUSTIFY_RIGHT);
         }
     }
 

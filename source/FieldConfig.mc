@@ -40,6 +40,7 @@ class FieldConfig {
         F_CATCH_DUR,  // Catch duration (seconds)
         F_CATCH_SLOPE, // Catch slope (mG/s)
         F_PEAK_ACCEL, // Peak drive acceleration (mG)
+        F_RADAR,      // Radar: closest obstacle distance
         F_COUNT       // sentinel
     }
 
@@ -209,6 +210,7 @@ class FieldConfig {
             case F_CATCH_DUR: return "CATCH DUR";
             case F_CATCH_SLOPE: return "CATCH SLOPE";
             case F_PEAK_ACCEL: return "PEAK ACCEL";
+            case F_RADAR: return "RADAR";
             default:          return "?";
         }
     }
@@ -236,6 +238,7 @@ class FieldConfig {
             case F_CATCH_DUR: return "Catch Duration";
             case F_CATCH_SLOPE: return "Catch Slope";
             case F_PEAK_ACCEL: return "Peak Accel";
+            case F_RADAR: return "Radar";
             default:          return "Unknown";
         }
     }
