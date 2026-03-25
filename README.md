@@ -139,9 +139,11 @@ Press MENU to access settings:
 - **Zoom Level**: number of visible fields
 - **Features**: toggle auto-pause, demo mode, curve metrics, accel/HF/rowing log
 
-## TODO
+## Connect IQ Store
 
-- [ ] Publish to Connect IQ Store
+[RowEdge on Connect IQ Store](https://apps.garmin.com/apps/9064c795-03e1-4424-aa4e-e5033e03dbcf) (pending review)
+
+## TODO
 - [ ] Varia radar obstacle detection
 - [ ] Phone settings via settings.xml
 - [ ] Interval workouts
