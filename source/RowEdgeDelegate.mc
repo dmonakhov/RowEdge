@@ -131,7 +131,7 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onNextPage() {
-        // DOWN / swipe-up = zoom out (more fields)
+        // DOWN button = zoom out (more fields)
         var app = Application.getApp();
         app.fieldConfig.zoomOut();
         WatchUi.requestUpdate();
@@ -139,11 +139,29 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() {
-        // UP / swipe-down = zoom in (fewer fields)
+        // UP button = zoom in (fewer fields)
         var app = Application.getApp();
         app.fieldConfig.zoomIn();
         WatchUi.requestUpdate();
         return true;
+    }
+
+    // Direct swipe handling for touch devices (1040/1050).
+    // BehaviorDelegate's automatic swipe->onNextPage mapping may not work
+    // on all Edge devices. Handle swipe explicitly as fallback.
+    function onSwipe(swipeEvent) {
+        var dir = swipeEvent.getDirection();
+        var app = Application.getApp();
+        if (dir == WatchUi.SWIPE_UP) {
+            app.fieldConfig.zoomOut();
+            WatchUi.requestUpdate();
+            return true;
+        } else if (dir == WatchUi.SWIPE_DOWN) {
+            app.fieldConfig.zoomIn();
+            WatchUi.requestUpdate();
+            return true;
+        }
+        return false;  // let SWIPE_LEFT/RIGHT fall through to onBack
     }
 
     function onMenu() {
