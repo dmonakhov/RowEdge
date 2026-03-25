@@ -1,5 +1,5 @@
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
-    <iq:application entry="RowEdgeApp" id="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    <iq:application entry="RowEdgeApp" id="ab3c650e-7db8-4310-86f7-e2ab5d7651e3"
                     launcherIcon="@Drawables.LauncherIcon"
                     minSdkVersion="4.1.0"
                     name="@Strings.AppName"
