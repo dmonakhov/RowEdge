@@ -409,7 +409,13 @@ class RowingView extends WatchUi.View {
 
         // Header
         dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, 4, Graphics.FONT_MEDIUM, "Activity Paused",
+	dc.drawRectangle(0, 0, w, h);
+	dc.drawRectangle(1, 1, w - 2, h - 2);
+	dc.drawRectangle(2, 2, w - 4, h - 4);
+	dc.drawRectangle(3, 3, w - 6, h - 6);
+
+	dc.setColor(Graphics.COLOR_DK_RED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, 15, Graphics.FONT_MEDIUM, "Activity Paused",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         // Data rows using fontC for values
@@ -444,8 +450,8 @@ class RowingView extends WatchUi.View {
 
         // Bottom hint
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, y + 5, Graphics.FONT_XTINY,
+        dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, y + 5, Graphics.FONT_MEDIUM,
                     "START: resume  BACK: stop",
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
@@ -474,8 +480,8 @@ class RowingView extends WatchUi.View {
 
         // Bottom hint
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, y, Graphics.FONT_XTINY,
+        dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(w / 2, y, Graphics.FONT_SMALL,
                     "Press any button to dismiss",
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
@@ -549,7 +555,7 @@ class RowingView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
             dc.drawRectangle(0, 0, w, h);
             dc.drawRectangle(1, 1, w - 2, h - 2);
-            dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+            //dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w - 4, cells[0][1] + 2, Graphics.FONT_SMALL,
                         "DEMO MODE", Graphics.TEXT_JUSTIFY_RIGHT);
         }
