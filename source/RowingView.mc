@@ -748,7 +748,7 @@ class RowingView extends WatchUi.View {
             case FieldConfig.F_RADAR:
                 var radar = Application.getApp().radarMonitor;
                 if (radar.targetCount > 0) {
-                    return radar.closestRange.format("%d") + "m";
+                    return radar.closestRange.format("%d") + "m " + radar.getClassLabel();
                 }
                 return "--";
             default:
@@ -783,11 +783,14 @@ class RowingView extends WatchUi.View {
             dc.setColor(color, color);
             dc.fillRectangle(w - barW, 0, barW, h);
 
-            // Show distance at top-right
+            // Show distance + TTC at top-right
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            var radarText = radar.closestRange.format("%d") + "m";
+            if (radar.closestTTC < 30) {
+                radarText += " " + radar.closestTTC.format("%.0f") + "s";
+            }
             dc.drawText(w - barW - 2, 0, Graphics.FONT_XTINY,
-                        radar.closestRange.format("%d") + "m",
-                        Graphics.TEXT_JUSTIFY_RIGHT);
+                        radarText, Graphics.TEXT_JUSTIFY_RIGHT);
         }
     }
 
