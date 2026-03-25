@@ -3,12 +3,25 @@ using Toybox.Graphics;
 using Toybox.System;
 using Toybox.Application;
 
-// Edge 540 buttons:
-//   ENTER  = start / pause / resume
-//   BACK   = lap (recording) | stop+save prompt (paused) | exit (idle)
-//   UP     = zoom in (fewer fields, bigger)
-//   DOWN   = zoom out (more fields, smaller)
-//   MENU   = settings (data fields, threshold, zoom)
+// Edge 540 physical buttons (7 buttons, no touch):
+//   Bottom-RIGHT: Start/Stop  -> KEY_START -> onKey()          -> start/pause/resume
+//   Bottom-LEFT:  Lap         -> KEY_LAP   -> onKey()          -> lap / stop prompt
+//   Right-upper:  Enter/OK    -> KEY_ENTER -> onSelect()       -> settings menu
+//   Right-lower:  Back        -> KEY_ESC   -> onBack()         -> lap / stop prompt
+//   Left-upper:   Up          -> KEY_UP    -> onPreviousPage() -> zoom in
+//   Left-lower:   Down        -> KEY_DOWN  -> onNextPage()     -> zoom out
+//   Up (hold):    Menu        -> KEY_MENU  -> onMenu()         -> settings menu
+//
+// Edge 840 (same 7 buttons + touch):
+//   Same as 540, plus touch tap/swipe gestures
+//
+// Edge 1040/1050 (3 buttons + touch):
+//   Bottom-RIGHT: Start/Stop  -> KEY_START -> onKey()          -> start/pause/resume
+//   Bottom-LEFT:  Lap         -> KEY_LAP   -> onKey()          -> lap / stop prompt
+//   Left-side:    Power       -> system only
+//   Touch tap    -> onSelect() -> start/pause/resume (TODO: multi-device phase)
+//   Swipe right  -> onBack()   -> lap / stop prompt
+//   Swipe up/dn  -> onNextPage()/onPreviousPage() -> zoom
 
 class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
 
@@ -19,7 +32,40 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         view = rowingView;
     }
 
+    // Route physical buttons to actions.
+    // Bottom-edge Start/Stop and Lap fire KEY_START/KEY_LAP (not routed
+    // by BehaviorDelegate). Right-upper Enter fires KEY_ENTER -> onSelect().
+    // We intercept KEY_ENTER so only KEY_START controls the activity,
+    // preventing accidental start from the side "Enter/Menu" button.
+    // Touch tap on 840/1040/1050 goes directly to onSelect() (not via onKey).
+    function onKey(keyEvent) {
+        var key = keyEvent.getKey();
+        if (key == WatchUi.KEY_START) {
+            return handleStartStop();
+        } else if (key == WatchUi.KEY_LAP) {
+            return handleLap();
+        }
+        return false;
+    }
+
+    // onSelect() fires from KEY_ENTER (right-upper Enter/OK on 540) and
+    // touch tap (840/1040/1050). Opens settings menu -- same as onMenu().
     function onSelect() {
+        if (view.state == RowingView.STATE_SUMMARY) {
+            view.dismissSummary();
+            WatchUi.requestUpdate();
+            return true;
+        }
+        return onMenu();
+    }
+
+    // Back button (right-lower on 540) / swipe right on touch
+    function onBack() {
+        return handleLap();
+    }
+
+    // Start / Pause / Resume activity
+    function handleStartStop() {
         if (view.state == RowingView.STATE_SUMMARY) {
             view.dismissSummary();
             WatchUi.requestUpdate();
@@ -31,20 +77,16 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
 
         if (view.state == RowingView.STATE_IDLE) {
             if (app.featureConfig.isEnabled(FeatureConfig.FEAT_DEMO_MODE)) {
-                // Demo mode: skip calibration, no FIT recording
                 view.setState(RowingView.STATE_RECORDING);
             } else {
-                // Normal: start calibration, then activity begins automatically
                 app.strokeDetector.startCalibration();
                 view.setState(RowingView.STATE_CALIBRATING);
             }
         } else if (view.state == RowingView.STATE_RECORDING) {
-            // Pause
             app.strokeDetector.stop();
             session.stop();
             view.setState(RowingView.STATE_PAUSED);
         } else if (view.state == RowingView.STATE_PAUSED) {
-            // Resume (manual)
             session.resume();
             app.strokeDetector.start();
             view.autoPaused = false;
@@ -57,7 +99,8 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    function onBack() {
+    // Lap (recording) / Save dialog (paused) / Exit (idle)
+    function handleLap() {
         if (view.state == RowingView.STATE_SUMMARY) {
             view.dismissSummary();
             WatchUi.requestUpdate();
@@ -72,7 +115,6 @@ class RowEdgeDelegate extends WatchUi.BehaviorDelegate {
             WatchUi.requestUpdate();
             return true;
         } else if (view.state == RowingView.STATE_PAUSED) {
-            // Stop -- ask save/discard
             WatchUi.pushView(
                 new WatchUi.Confirmation("Save activity?"),
                 new SaveConfirmDelegate(view),
