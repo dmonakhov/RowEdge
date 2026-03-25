@@ -606,7 +606,10 @@ class RowingView extends WatchUi.View {
         return cells;
     }
 
-    // Tall screen layout: hero + secondary hero (full-width) + grid
+    // Tall screen layout: hero + secondary hero (equal height) + grid.
+    // Uses unit-based sizing like standard layout but with two 2-unit heroes.
+    // hero = 2 units, secondary = 2 units, each grid row = 1 unit.
+    // This maintains grid W/H ratio similar to Edge 540 standard layout.
     function computeLayoutTall(n, w, h) {
         var cells = new [n];
         if (n == 1) {
@@ -614,33 +617,38 @@ class RowingView extends WatchUi.View {
             return cells;
         }
 
-        // Hero ~30%, secondary hero ~15%, grid takes the rest
-        var heroH = h * 30 / 100;
-        var secH = h * 15 / 100;
-
-        cells[0] = [0, 0, w, heroH];
-        cells[1] = [0, heroH, w, secH];
-
         if (n == 2) {
-            // Expand secondary to fill remaining space
+            // Two equal full-width heroes
+            var heroH = h / 2;
+            cells[0] = [0, 0, w, heroH];
             cells[1] = [0, heroH, w, h - heroH];
             return cells;
         }
 
         if (n == 3) {
-            // Hero + secondary + 1 full-width row
-            var rowH = h - heroH - secH;
-            cells[2] = [0, heroH + secH, w, rowH];
+            // hero=2, sec=2, row=1 -> 5 units
+            var unitH = h / 5;
+            var heroH = unitH * 2;
+            var secH = unitH * 2;
+            cells[0] = [0, 0, w, heroH];
+            cells[1] = [0, heroH, w, secH];
+            cells[2] = [0, heroH + secH, w, h - heroH - secH];
             return cells;
         }
 
         // n >= 5: Hero + secondary hero + 2-column grid
-        var gridN = n - 2;  // minus hero and secondary
+        // hero=2 units, sec=2 units, each grid row=1 unit
+        var gridN = n - 2;
         var gridRows = (gridN + 1) / 2;
-        var gridH = h - heroH - secH;
-        var rowH = gridH / gridRows;
+        var totalUnits = 2 + 2 + gridRows;
+        var unitH = h / totalUnits;
+        var heroH = unitH * 2;
+        var secH = unitH * 2;
+        var rowH = unitH;
         var cw = w / 2;
 
+        cells[0] = [0, 0, w, heroH];
+        cells[1] = [0, heroH, w, secH];
         for (var i = 2; i < n; i++) {
             var gi = i - 2;
             var r = gi / 2;
