@@ -21,13 +21,19 @@ ifeq ($(GARMIN_MNT),)
 GARMIN_MNT := $(wildcard /run/media/$(USER)/GARMIN)
 endif
 
-.PHONY: build fonts run_simulator simulator deploy clean
+.PHONY: build export fonts run_simulator simulator deploy clean
 
 build: $(OUT)
 
 $(OUT): $(SOURCES) $(RESOURCES) $(JUNGLE) manifest.xml
 	@mkdir -p bin
 	$(MONKEYC) -d $(DEVICE) -f $(JUNGLE) -o $(OUT) -y $(DEV_KEY)
+
+# Export multi-device .iq package (for Connect IQ Store upload)
+export: $(SOURCES) $(RESOURCES) $(JUNGLE) manifest.xml
+	@mkdir -p bin
+	$(MONKEYC) -e -f $(JUNGLE) -o bin/RowEdge.iq -y $(DEV_KEY)
+	@echo "Exported bin/RowEdge.iq (all devices)"
 
 fonts:
 	@echo "=== Edge 540/840 (246x322) ==="
