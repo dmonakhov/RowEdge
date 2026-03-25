@@ -111,4 +111,46 @@ class RadarMonitor extends AntPlus.BikeRadarListener {
     function isConnected() {
         return (targetCount > 0 || bikeRadar != null);
     }
+
+    // Demo mode: inject simulated radar data (no real ANT+ needed).
+    // Simulates an obstacle approaching from 120m, closing to 5m,
+    // then resetting. Cycle ~40s at 3 m/s closing speed.
+    function injectDemoTarget(elapsed) {
+        // Cycle: approach from 120m to 5m, then disappear for 10s
+        var cycle = elapsed % 50;
+        if (cycle < 40) {
+            // Approaching: 120m -> 0m over 40s
+            var range = 120 - (cycle * 3);
+            if (range < 5) { range = 5; }
+            targetCount = 1;
+            closestRange = range;
+            closestSpeed = 3.0;
+        } else {
+            // Clear for 10s
+            targetCount = 0;
+            closestRange = 0;
+            closestSpeed = 0.0;
+        }
+
+        // Compute threat level
+        prevThreatLevel = threatLevel;
+        if (closestRange > 0 && closestRange <= RANGE_DANGER) {
+            threatLevel = 3;
+        } else if (closestRange > 0 && closestRange <= RANGE_WARNING) {
+            threatLevel = 2;
+        } else if (closestRange > 0 && closestRange <= RANGE_CAUTION) {
+            threatLevel = 1;
+        } else {
+            threatLevel = 0;
+        }
+
+        // Alert on escalation
+        if (threatLevel > prevThreatLevel && threatLevel >= 2) {
+            var now = System.getTimer();
+            if (now - lastAlertTime > ALERT_COOLDOWN_MS) {
+                playAlert(threatLevel);
+                lastAlertTime = now;
+            }
+        }
+    }
 }

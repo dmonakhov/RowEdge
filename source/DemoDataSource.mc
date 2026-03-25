@@ -91,6 +91,9 @@ class DemoDataSource {
 
         // Feed 25 IMU samples into StrokeDetector (1 second of data)
         feedImuSamples(detector, 25);
+
+        // Simulate radar: approaching obstacle every ~50s cycle
+        Application.getApp().radarMonitor.injectDemoTarget(elapsed);
     }
 
     // Feed N samples from the current pattern into the detector.
