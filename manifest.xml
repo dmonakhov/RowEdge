@@ -1,11 +1,14 @@
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
     <iq:application entry="RowEdgeApp" id="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                     launcherIcon="@Drawables.LauncherIcon"
-                    minSdkVersion="5.1.0"
+                    minSdkVersion="4.1.0"
                     name="@Strings.AppName"
                     type="watch-app">
         <iq:products>
             <iq:product id="edge540"/>
+            <iq:product id="edge840"/>
+            <iq:product id="edge1040"/>
+            <iq:product id="edge1050"/>
         </iq:products>
         <iq:permissions>
             <iq:uses-permission id="Sensor"/>

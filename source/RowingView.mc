@@ -87,7 +87,7 @@ class RowingView extends WatchUi.View {
     }
 
     function onShow() {
-        setControlBar(null);
+        if (self has :setControlBar) { setControlBar(null); }
         fontA = WatchUi.loadResource(Rez.Fonts.id_font_a);
         fontB = WatchUi.loadResource(Rez.Fonts.id_font_b);
         fontC = WatchUi.loadResource(Rez.Fonts.id_font_c);

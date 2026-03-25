@@ -211,7 +211,7 @@ class ZoomView extends WatchUi.View {
     }
 
     function onShow() {
-        setControlBar(null);
+        if (self has :setControlBar) { setControlBar(null); }
     }
 
     function onUpdate(dc) {
