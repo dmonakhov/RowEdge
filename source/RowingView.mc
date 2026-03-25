@@ -550,15 +550,27 @@ class RowingView extends WatchUi.View {
     }
 
     // Compute cell rectangles [x, y, w, h] for N fields.
-    // Wahoo-style zoom scheme (verified on WFCC1):
+    //
+    // Standard layout (Edge 540/840, height <= 400):
     //   z1: 1 field (full screen)
-    //   z2: 2 fields (hero ~50% + 1 full-width row)
-    //   z3: 3 fields (hero ~40% + 2 full-width rows ~30% each)
-    //   z4: 5 fields (hero ~40% + 2x2 grid)
-    //   z5: 7 fields (hero ~33% + 2x3 grid)
-    //   z6: 9 fields (hero ~25% + 2x4 grid)
-    //   z7: 11 fields (hero ~20% + 2x5 grid)
+    //   z2: 2 fields (hero + 1 row)
+    //   z3: 3 fields (hero + 2 full-width rows)
+    //   z4+: hero + 2-column grid
+    //
+    // Tall layout (Edge 1040/1050, height > 400):
+    //   z1: 1 field (hero only)
+    //   z2: 2 fields (hero + secondary hero, both full-width)
+    //   z3: 3 fields (hero + secondary hero + 1 full-width row)
+    //   z4+: hero + secondary hero + 2-column grid
     function computeLayout(n, w, h) {
+        var tall = (h > 400);
+        if (tall && n >= 2) {
+            return computeLayoutTall(n, w, h);
+        }
+        return computeLayoutStandard(n, w, h);
+    }
+
+    function computeLayoutStandard(n, w, h) {
         var cells = new [n];
         if (n == 1) {
             cells[0] = [0, 0, w, h];
@@ -567,7 +579,6 @@ class RowingView extends WatchUi.View {
             cells[0] = [0, 0, w, heroH];
             cells[1] = [0, heroH, w, h - heroH];
         } else if (n == 3) {
-            // Hero ~40% + 2 full-width rows ~30% each
             var heroH = h * 2 / 5;
             var rowH = (h - heroH) / 2;
             cells[0] = [0, 0, w, heroH];
@@ -575,11 +586,9 @@ class RowingView extends WatchUi.View {
             cells[2] = [0, heroH + rowH, w, h - heroH - rowH];
         } else {
             // n >= 5: Hero + 2-column grid
-            // Hero percentage: 5->40%, 7->33%, 9->25%, 11->20%
             var gridN = n - 1;
             var gridRows = (gridN + 1) / 2;
-            // Total rows = 1 hero + gridRows. Hero gets ~2x a grid row height.
-            var totalUnits = gridRows + 2; // hero = 2 units, each grid row = 1 unit
+            var totalUnits = gridRows + 2;
             var unitH = h / totalUnits;
             var heroH = unitH * 2;
             var rowH = unitH;
@@ -593,6 +602,51 @@ class RowingView extends WatchUi.View {
                 var y = heroH + r * rowH;
                 cells[i] = [cw * c, y, cw, rowH];
             }
+        }
+        return cells;
+    }
+
+    // Tall screen layout: hero + secondary hero (full-width) + grid
+    function computeLayoutTall(n, w, h) {
+        var cells = new [n];
+        if (n == 1) {
+            cells[0] = [0, 0, w, h];
+            return cells;
+        }
+
+        // Hero ~30%, secondary hero ~15%, grid takes the rest
+        var heroH = h * 30 / 100;
+        var secH = h * 15 / 100;
+
+        cells[0] = [0, 0, w, heroH];
+        cells[1] = [0, heroH, w, secH];
+
+        if (n == 2) {
+            // Expand secondary to fill remaining space
+            cells[1] = [0, heroH, w, h - heroH];
+            return cells;
+        }
+
+        if (n == 3) {
+            // Hero + secondary + 1 full-width row
+            var rowH = h - heroH - secH;
+            cells[2] = [0, heroH + secH, w, rowH];
+            return cells;
+        }
+
+        // n >= 5: Hero + secondary hero + 2-column grid
+        var gridN = n - 2;  // minus hero and secondary
+        var gridRows = (gridN + 1) / 2;
+        var gridH = h - heroH - secH;
+        var rowH = gridH / gridRows;
+        var cw = w / 2;
+
+        for (var i = 2; i < n; i++) {
+            var gi = i - 2;
+            var r = gi / 2;
+            var c = gi % 2;
+            var y = heroH + secH + r * rowH;
+            cells[i] = [cw * c, y, cw, rowH];
         }
         return cells;
     }

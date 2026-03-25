@@ -8,16 +8,12 @@ DEVICE ?= edge540
 OUT := bin/RowEdge.prg
 JUNGLE := monkey.jungle
 
-# Font generation: A=hero 80, B=medium full-width 55, C=grid tall 38, D=grid small 26
+# Font generation from RobotoCondensed-Bold
 TTF := $(HOME)/.Garmin/ConnectIQ/Fonts/RobotoCondensed-Bold.ttf
-FA_SIZE := 80
-FB_SIZE := 55
-FC_SIZE := 38
-FD_SIZE := 26
-FONT_DIR := resources/fonts
 
 SOURCES := $(wildcard source/*.mc)
-RESOURCES := $(wildcard resources/*/*.xml) $(wildcard resources/*/*.png) $(wildcard resources/*/*.fnt)
+RESOURCES := $(wildcard resources/*/*.xml) $(wildcard resources/*/*.png) $(wildcard resources/*/*.fnt) \
+             $(wildcard resources-rectangle-*/*/*.xml) $(wildcard resources-rectangle-*/*/*.png) $(wildcard resources-rectangle-*/*/*.fnt)
 
 # Mount point for Garmin Edge USB mass storage
 GARMIN_MNT ?= $(wildcard /media/$(USER)/GARMIN)
@@ -34,10 +30,16 @@ $(OUT): $(SOURCES) $(RESOURCES) $(JUNGLE) manifest.xml
 	$(MONKEYC) -d $(DEVICE) -f $(JUNGLE) -o $(OUT) -y $(DEV_KEY)
 
 fonts:
-	python3 tools/gen_font.py $(TTF) $(FA_SIZE) $(FONT_DIR)/font_a
-	python3 tools/gen_font.py $(TTF) $(FB_SIZE) $(FONT_DIR)/font_b
-	python3 tools/gen_font.py $(TTF) $(FC_SIZE) $(FONT_DIR)/font_c
-	python3 tools/gen_font.py $(TTF) $(FD_SIZE) $(FONT_DIR)/font_d
+	@echo "=== Edge 540/840 (246x322) ==="
+	python3 tools/gen_font.py $(TTF) 80 resources/fonts/font_a
+	python3 tools/gen_font.py $(TTF) 55 resources/fonts/font_b
+	python3 tools/gen_font.py $(TTF) 38 resources/fonts/font_c
+	python3 tools/gen_font.py $(TTF) 26 resources/fonts/font_d
+	@echo "=== Edge 1040 (282x470) ==="
+	python3 tools/gen_font.py $(TTF) 91 resources-rectangle-282x470/fonts/font_a
+	python3 tools/gen_font.py $(TTF) 63 resources-rectangle-282x470/fonts/font_b
+	python3 tools/gen_font.py $(TTF) 43 resources-rectangle-282x470/fonts/font_c
+	python3 tools/gen_font.py $(TTF) 29 resources-rectangle-282x470/fonts/font_d
 
 simulator:
 	$(SIMULATOR) &

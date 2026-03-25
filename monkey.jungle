@@ -1,1 +1,7 @@
 project.manifest = manifest.xml
+
+# Default resources (Edge 540/840: 246x322)
+base.resourcePath = resources
+
+# Edge 1040: 282x470, larger fonts + shared strings/settings
+edge1040.resourcePath = resources-rectangle-282x470;resources/strings;resources/settings
