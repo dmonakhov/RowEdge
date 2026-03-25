@@ -51,8 +51,11 @@ class FieldConfig {
     const ZOOM_MIN = 1;
     const ZOOM_MAX = 7;
 
-    // Field counts per zoom level: z1=1, z2=2, z3=3, z4=5, z5=7, z6=9, z7=11
+    // Field counts per zoom level
+    // Standard (540/840): hero + grid
     static var ZOOM_FIELD_COUNT = [0, 1, 2, 3, 5, 7, 9, 11];
+    // Tall (1040/1050): hero + secondary hero + grid (+1 for z4+ to match grid density)
+    static var ZOOM_FIELD_COUNT_TALL = [0, 1, 2, 3, 6, 8, 10, 12];
 
     static var DEFAULT_FIELDS = [
         F_ACCEL_CURVE, F_SPLIT, F_HR, F_SPM, F_DISTANCE,
@@ -91,6 +94,19 @@ class FieldConfig {
         var n = ZOOM_FIELD_COUNT[zoomLevel];
         if (n > fields.size()) { n = fields.size(); }
         return n;
+    }
+
+    // Get visible count for tall screens (1040/1050 with secondary hero)
+    function getVisibleCountTall() {
+        var n = ZOOM_FIELD_COUNT_TALL[zoomLevel];
+        if (n > fields.size()) { n = fields.size(); }
+        return n;
+    }
+
+    // Get visible fields (first N based on zoom level and screen type)
+    function getVisibleFieldsTall(tall) {
+        var n = tall ? getVisibleCountTall() : getVisibleCount();
+        return fields.slice(0, n);
     }
 
     // Get visible fields (first N based on zoom level)

@@ -11,7 +11,8 @@ class MainMenuView extends WatchUi.Menu2 {
 
         var app = Application.getApp();
         var cfg = app.fieldConfig;
-        var fc = cfg.getVisibleCount();
+        var ds = System.getDeviceSettings();
+        var fc = (ds.screenHeight > 400) ? cfg.getVisibleCountTall() : cfg.getVisibleCount();
         addItem(new WatchUi.MenuItem("Zoom Level", "z" + cfg.zoomLevel + " (" + fc + " fields)", :zoom, null));
         addItem(new WatchUi.MenuItem("Features", "Auto-pause, demo...", :features, null));
     }
@@ -210,7 +211,10 @@ class ZoomMenu extends WatchUi.Menu2 {
         Menu2.initialize({:title => "Zoom Level"});
         var app = Application.getApp();
         var current = app.fieldConfig.zoomLevel;
-        var counts = FieldConfig.ZOOM_FIELD_COUNT;
+        // Use tall counts on tall screens (detected via System.getDeviceSettings)
+        var ds = System.getDeviceSettings();
+        var tall = (ds.screenHeight > 400);
+        var counts = tall ? FieldConfig.ZOOM_FIELD_COUNT_TALL : FieldConfig.ZOOM_FIELD_COUNT;
         for (var z = 1; z <= 7; z++) {
             var label = "z" + z + " - " + counts[z] + " fields";
             var sub = (z == current) ? "current" : null;

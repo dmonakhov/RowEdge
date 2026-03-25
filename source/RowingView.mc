@@ -492,7 +492,8 @@ class RowingView extends WatchUi.View {
         drawStatusBar(dc, w);
 
         var app = Application.getApp();
-        var visible = app.fieldConfig.getVisibleFields();
+        var tall = (h > 400);
+        var visible = app.fieldConfig.getVisibleFieldsTall(tall);
         var n = visible.size();
         if (n == 0) { return; }
 
