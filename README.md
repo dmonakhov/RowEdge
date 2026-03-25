@@ -38,9 +38,12 @@ features specific to the sport.
 - **7 stroke metrics** as data fields: FR, delta-V, D:R ratio, drive time, catch duration, catch slope, peak accel
 
 ### UI and Configuration
-- **Wahoo-style zoom** -- UP/DOWN buttons, z1-z7 (1 to 11 fields)
+- **Wahoo-style zoom** -- swipe up/down or UP/DOWN buttons, z1-z7
+- **Multi-device** -- Edge 540, 840, 1040, 1050 with per-device fonts and layout
+- **Touch support** -- swipe zoom, tap-to-configure, Picker for threshold, Menu2 for zoom
+- **Secondary hero** -- tall screens (1040/1050) show two full-width hero fields
 - **Configurable data fields** -- reorder, add, remove, Move to Top via menu
-- **Auto gravity calibration** -- 2-second static sampling at activity start
+- **Auto gravity calibration** -- 2-second static sampling with 300ms settle delay
 - **Auto-pause/resume** -- GPS speed based with holdoff/cooldown hysteresis
 - **Pause display** -- distance, time, avg split, clock
 - **Activity summary** -- shown for 10s after save
@@ -55,9 +58,10 @@ features specific to the sport.
 
 ## Supported Devices
 
-- Garmin Edge 540 / 540 Solar (primary target, 246x322)
-- Garmin Edge 840 (same resolution)
-- Other Edge devices with CIQ 6.0+ (untested)
+- Garmin Edge 540 / 540 Solar (246x322, button-only)
+- Garmin Edge 840 (246x322, buttons + touch)
+- Garmin Edge 1040 / 1040 Solar (282x470, touch + 3 buttons)
+- Garmin Edge 1050 (480x800, touch + 3 buttons)
 
 ## Available Data Fields
 
@@ -97,15 +101,15 @@ Wahoo-style zoom matching real ELEMNT behavior:
 | z6   | 9      | Hero + 2x4 grid       |
 | z7   | 11     | Hero + 2x5 grid       |
 
-## Button Mapping
+## Button / Touch Mapping
 
-| Button | Idle              | Recording | Paused       |
-|--------|-------------------|-----------|--------------|
-| ENTER  | Start (calibrate) | Pause     | Resume       |
-| BACK   | Exit app          | Lap       | Save/Discard |
-| UP     | -                 | Zoom in   | Zoom in      |
-| DOWN   | -                 | Zoom out  | Zoom out     |
-| MENU   | Settings          | Settings  | Settings     |
+| Action | Edge 540/840 Button | Edge 1040/1050 Touch | During |
+|--------|--------------------|--------------------|--------|
+| Start/Pause/Resume | Start/Stop (bottom-right) | Start/Stop (bottom-right) | Any |
+| Lap / Save dialog | Lap (bottom-left) | Lap (bottom-left) | Recording/Paused |
+| Zoom in | UP button | Swipe down | Recording |
+| Zoom out | DOWN button | Swipe up | Recording |
+| Settings | Enter/OK or long-press UP | Tap screen | Idle/Paused |
 
 ## Build
 
@@ -137,9 +141,9 @@ Press MENU to access settings:
 
 ## TODO
 
-- [ ] Varia radar obstacle detection (mount on boat nose for forward warning)
-- [ ] Phone settings via settings.xml (requires Connect IQ Store publish)
-- [ ] Edge 1040/1050 layout optimization
+- [ ] Publish to Connect IQ Store
+- [ ] Varia radar obstacle detection
+- [ ] Phone settings via settings.xml
 - [ ] Interval workouts
 - [ ] [OpenSmartOar](../OpenSmartOar.project/): SmartHub + BLE oar sensors + obstacle detection
 
