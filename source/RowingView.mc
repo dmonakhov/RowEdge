@@ -766,14 +766,15 @@ class RowingView extends WatchUi.View {
     function pickFont(cellW, cellH, screenW, screenH) {
         var fullWidth = (cellW > screenW * 3 / 4);
 
-        if (fullWidth && cellH >= 100) {
+        if (fullWidth && cellH >= 100 && fontA != null) {
             return fontA;  // 80px hero
-        } else if (fullWidth) {
+        } else if (fullWidth && fontB != null) {
             return fontB;  // 55px full-width smaller rows
-        } else if (cellH >= 60) {
+        } else if (cellH >= 60 && fontC != null) {
             return fontC;  // 38px grid tall cells
         }
-        return fontD;      // 26px grid small cells
+        // Fallback to system font if custom fonts not loaded
+        return (fontD != null) ? fontD : Graphics.FONT_SMALL;
     }
 
     // Acceleration curve: catch + drive + recovery tail, full width.
