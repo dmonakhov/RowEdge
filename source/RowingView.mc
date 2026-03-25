@@ -552,16 +552,25 @@ class RowingView extends WatchUi.View {
                 drawAccelCurve(dc, cx, cy, cw, ch, lf);
             } else if (fid == FieldConfig.F_DISTANCE) {
                 drawDistanceCell(dc, cx, cy, cw, ch, lf, vf);
-            } else {
-                var label;
-                // Radar: dynamic label shows classification
-                if (fid == FieldConfig.F_RADAR) {
-                    var rm = app.radarMonitor;
-                    label = (rm.targetCount > 0) ?
-                        "RADAR " + rm.getClassLabel() : "RADAR";
-                } else {
-                    label = FieldConfig.getLabel(fid);
+            } else if (fid == FieldConfig.F_RADAR) {
+                var rm = app.radarMonitor;
+                var label = (rm.targetCount > 0) ?
+                    "RADAR " + rm.getClassLabel() : "RADAR";
+                var value = getFieldValue(fid);
+                // Color background by threat level
+                if (rm.threatLevel >= 3) {
+                    dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_RED);
+                    dc.fillRectangle(cx, cy, cw, ch);
+                } else if (rm.threatLevel >= 2) {
+                    dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_ORANGE);
+                    dc.fillRectangle(cx, cy, cw, ch);
+                } else if (rm.threatLevel >= 1) {
+                    dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
+                    dc.fillRectangle(cx, cy, cw, ch);
                 }
+                drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
+            } else {
+                var label = FieldConfig.getLabel(fid);
                 var value = getFieldValue(fid);
                 drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
             }
