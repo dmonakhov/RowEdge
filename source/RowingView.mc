@@ -553,7 +553,15 @@ class RowingView extends WatchUi.View {
             } else if (fid == FieldConfig.F_DISTANCE) {
                 drawDistanceCell(dc, cx, cy, cw, ch, lf, vf);
             } else {
-                var label = FieldConfig.getLabel(fid);
+                var label;
+                // Radar: dynamic label shows classification
+                if (fid == FieldConfig.F_RADAR) {
+                    var rm = app.radarMonitor;
+                    label = (rm.targetCount > 0) ?
+                        "RADAR " + rm.getClassLabel() : "RADAR";
+                } else {
+                    label = FieldConfig.getLabel(fid);
+                }
                 var value = getFieldValue(fid);
                 drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
             }
@@ -748,7 +756,7 @@ class RowingView extends WatchUi.View {
             case FieldConfig.F_RADAR:
                 var radar = Application.getApp().radarMonitor;
                 if (radar.targetCount > 0) {
-                    return radar.closestRange.format("%d") + "m " + radar.getClassLabel();
+                    return radar.closestRange.format("%d") + "m";
                 }
                 return "--";
             default:
