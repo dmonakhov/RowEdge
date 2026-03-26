@@ -2,6 +2,8 @@ using Toybox.Application;
 using Toybox.WatchUi;
 using Toybox.System;
 
+const APP_VERSION = "v0.7";
+
 class RowEdgeApp extends Application.AppBase {
 
     var strokeDetector;
