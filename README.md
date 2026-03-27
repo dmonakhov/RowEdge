@@ -4,16 +4,22 @@
   <img src="images/RoundBage.png" width="200" alt="RowEdge Logo"/>
 </p>
 
+[**Install from Connect IQ Store**](https://apps.garmin.com/apps/9064c795-03e1-4424-aa4e-e5033e03dbcf)
+
 An open-source Connect IQ app that turns Garmin Edge cycling computers into
 outdoor rowing performance computers.
 
 ## Screenshots
 
 <p align="center">
-  <img src="images/demo01/activity-acc-curve-default.png" width="180" alt="Accel Curve z4"/>
-  <img src="images/demo01/activity-acc-curve-z2.png" width="180" alt="Accel Curve z2"/>
-  <img src="images/demo01/activity-split-default.png" width="180" alt="Split view z4"/>
-  <img src="images/demo01/activity-z7.png" width="180" alt="All fields z7"/>
+  <img src="images/demo02/Edge1040.png" width="200" alt="Edge 1040 with sparklines"/>
+  <img src="images/demo02/edge-1050.png" width="200" alt="Edge 1050 with sparklines"/>
+</p>
+<p align="center">
+  <img src="images/demo01/activity-acc-curve-default.png" width="160" alt="Accel Curve z4"/>
+  <img src="images/demo01/activity-acc-curve-z2.png" width="160" alt="Accel Curve z2"/>
+  <img src="images/demo01/activity-split-default.png" width="160" alt="Split view z4"/>
+  <img src="images/demo01/activity-z7.png" width="160" alt="All fields z7"/>
 </p>
 
 ## Why?
@@ -32,10 +38,18 @@ features specific to the sport.
 - **Activity recording** as FIT SPORT_ROWING with custom fields
 
 ### Acceleration Curve (Force Curve Proxy)
-- **Real-time stroke graph** -- catch + drive + recovery tail with green/red fill
+- **Real-time stroke graph** -- 70/30 asymmetric Y-scaling (drive gets 70% of height)
+- **Orange clip indicator** for deep catches -- proportional width shows severity
 - **Force ratio (FR%)** overlaid on drive curve -- stroke quality at a glance
 - **Delta-V** -- velocity gained per stroke (impulse)
 - **7 stroke metrics** as data fields: FR, delta-V, D:R ratio, drive time, catch duration, catch slope, peak accel
+
+### Radar Obstacle Detection
+- **Varia ANT+ radar** -- forward-facing on bow, detects approaching objects
+- **Smart classification** -- STATIONARY (buoy/dock), ONCOMING (head-on), OVERTAKING
+- **TTC-based alerts** -- time-to-collision with per-class thresholds, 3-hit persistence
+- **Visual warning** -- colored bar (red/orange/green) + range + TTC on data screen
+- **Radar data field** -- colored background by threat level, ONC shown in red
 
 ### UI and Configuration
 - **Wahoo-style zoom** -- swipe up/down or UP/DOWN buttons, z1-z7
@@ -49,10 +63,12 @@ features specific to the sport.
 - **Activity summary** -- shown for 10s after save
 
 ### Advanced Features
+- **Sparkline graphs** -- 60s zone-colored bar history in hero fields (split, HR, SPM, FR, dV)
 - **Forward acceleration detection** -- orientation-aware boat vector from gravity calibration
-- **Demo mode** -- realistic stroke replay on Dorney Lake Olympic course
+- **Demo mode** -- real on-water stroke replay (5 intensity types) on Dorney Lake course
 - **High-frequency accel logging** -- 25Hz forward accel packed to FIT (13 SINT32 fields)
 - **Rowing metrics logging** -- per-stroke FR, delta-V, D:R, catch metrics to FIT
+- **Radar raw logging** -- 8 targets range/speed + threat level to FIT
 - **Feature toggles** -- auto-pause, demo, curve metrics, accel/HF/rowing log
 - **FIT data extraction** -- Python tool with gnuplot visualization (tools/fit_extract.py)
 
@@ -139,12 +155,8 @@ Press MENU to access settings:
 - **Zoom Level**: number of visible fields
 - **Features**: toggle auto-pause, demo mode, curve metrics, accel/HF/rowing log
 
-## Connect IQ Store
-
-[RowEdge on Connect IQ Store](https://apps.garmin.com/apps/9064c795-03e1-4424-aa4e-e5033e03dbcf) (pending review)
-
 ## TODO
-- [ ] Varia radar obstacle detection
+- [ ] Radar alert threshold settings (configurable distances)
 - [ ] Phone settings via settings.xml
 - [ ] Interval workouts
 - [ ] [OpenSmartOar](../OpenSmartOar.project/): SmartHub + BLE oar sensors + obstacle detection
