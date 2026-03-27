@@ -562,15 +562,20 @@ class RowingView extends WatchUi.View {
                 var label = (rm.targetCount > 0) ?
                     "RADAR " + rm.getClassLabel() : "RADAR";
                 var value = getFieldValue(fid);
-                // Color background by threat level
+                // Color background by threat level + classification
+                // ONC (oncoming) = red tones, STA (stationary) = yellow tones
                 if (rm.threatLevel >= 3) {
                     dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_RED);
                     dc.fillRectangle(cx, cy, cw, ch);
                 } else if (rm.threatLevel >= 2) {
-                    dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_ORANGE);
+                    var warnColor = (rm.closestClass == RadarMonitor.CLS_ONCOMING) ?
+                        Graphics.COLOR_RED : Graphics.COLOR_ORANGE;
+                    dc.setColor(warnColor, warnColor);
                     dc.fillRectangle(cx, cy, cw, ch);
                 } else if (rm.threatLevel >= 1) {
-                    dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
+                    var cautColor = (rm.closestClass == RadarMonitor.CLS_ONCOMING) ?
+                        Graphics.COLOR_ORANGE : Graphics.COLOR_GREEN;
+                    dc.setColor(cautColor, cautColor);
                     dc.fillRectangle(cx, cy, cw, ch);
                 }
                 drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
@@ -918,15 +923,14 @@ class RowingView extends WatchUi.View {
             var z = app.fieldConfig.zoomLevel;
             var mFont = (z <= 5) ? fontC : fontD;
 
-            // FR: centered in positive area (overlaid on drive curve)
-            var frY = gy + (yMax * gh / yRange * 4 / 10).toNumber();
+            // FR: static position at 25% from top of graph area
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x + w / 2, frY, mFont,
+            dc.drawText(x + w / 2, gy + gh / 4, mFont,
                         (det.strokeForceRatio * 100).format("%.0f") + "%",
                         Graphics.TEXT_JUSTIFY_CENTER);
 
-            // dV: right-aligned in negative area below zero line
-            dc.drawText(x + w - 6, zeroY + 2, mFont,
+            // dV: static position at 75% from top of graph area, right-aligned
+            dc.drawText(x + w - 6, gy + gh * 3 / 4, mFont,
                         det.strokeDeltaV.format("%.2f"),
                         Graphics.TEXT_JUSTIFY_RIGHT);
         }

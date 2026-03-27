@@ -99,20 +99,23 @@ class RadarMonitor extends AntPlus.BikeRadarListener {
         return range.toFloat() / relativeSpeed;
     }
 
-    // Compute threat level from TTC + range + classification
+    // Compute threat level from TTC + range + classification.
+    // Oncoming objects get earlier alerts (higher closing speed = less reaction time).
     function computeThreat(range, relativeSpeed, ttc, cls) {
         // DANGER: immediate evasive action
         if (range <= 15) { return 3; }
         if (ttc < 4.0 && relativeSpeed > 1.0) { return 3; }
+        if (cls == CLS_ONCOMING && ttc < 6.0) { return 3; }
 
         // WARNING: prepare to act
         if (range <= 40) { return 2; }
         if (ttc < 10.0 && relativeSpeed > 1.0) { return 2; }
-        if (cls == CLS_ONCOMING && ttc < 15.0) { return 2; }
+        if (cls == CLS_ONCOMING && ttc < 18.0) { return 2; }
 
         // CAUTION: awareness
         if (range <= 80) { return 1; }
         if (ttc < 20.0) { return 1; }
+        if (cls == CLS_ONCOMING && range <= 120) { return 1; }
 
         return 0;
     }
