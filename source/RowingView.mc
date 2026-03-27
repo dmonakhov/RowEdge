@@ -575,6 +575,22 @@ class RowingView extends WatchUi.View {
         } else {
             lf = Graphics.FONT_TINY;
         }
+        // Draw sparklines FIRST (behind text) so metrics render on top
+        if (app.featureConfig.isEnabled(FeatureConfig.FEAT_SPARKLINES) && sparkCount > 3) {
+            var c0w = cells[0][2];
+            var c0h = cells[0][3];
+            if (c0w > w * 3 / 4 && c0h >= 60 && visible[0] != FieldConfig.F_ACCEL_CURVE) {
+                drawSparkline(dc, cells[0][0], cells[0][1], c0w, c0h, visible[0], sparkBuf0);
+            }
+            if (n >= 2 && h > 400) {
+                var c1w = cells[1][2];
+                var c1h = cells[1][3];
+                if (c1w > w * 3 / 4 && c1h >= 60 && visible[1] != FieldConfig.F_ACCEL_CURVE) {
+                    drawSparkline(dc, cells[1][0], cells[1][1], c1w, c1h, visible[1], sparkBuf1);
+                }
+            }
+        }
+
         for (var i = 0; i < n && i < cells.size(); i++) {
             var cx = cells[i][0];
             var cy = cells[i][1];
@@ -612,24 +628,6 @@ class RowingView extends WatchUi.View {
                 var label = FieldConfig.getLabel(fid);
                 var value = getFieldValue(fid);
                 drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
-            }
-        }
-
-        // Sparklines for hero cells (full-width, height >= 100)
-        if (app.featureConfig.isEnabled(FeatureConfig.FEAT_SPARKLINES) && sparkCount > 3) {
-            // Hero (slot 0): always if full-width and tall enough
-            var c0w = cells[0][2];
-            var c0h = cells[0][3];
-            if (c0w > w * 3 / 4 && c0h >= 100 && visible[0] != FieldConfig.F_ACCEL_CURVE) {
-                drawSparkline(dc, cells[0][0], cells[0][1], c0w, c0h, visible[0], sparkBuf0);
-            }
-            // Secondary hero (slot 1): on tall screens
-            if (n >= 2 && h > 400) {
-                var c1w = cells[1][2];
-                var c1h = cells[1][3];
-                if (c1w > w * 3 / 4 && c1h >= 100 && visible[1] != FieldConfig.F_ACCEL_CURVE) {
-                    drawSparkline(dc, cells[1][0], cells[1][1], c1w, c1h, visible[1], sparkBuf1);
-                }
             }
         }
 
@@ -1076,12 +1074,13 @@ class RowingView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 3, y + 1, lblFont, label, Graphics.TEXT_JUSTIFY_LEFT);
 
-        // Value: shift up on large cells to leave space for sparkline at bottom.
-        // Full-width cells (hero/secondary): value at 25% of remaining space.
-        // Grid cells: centered as before.
         var remaining = h - lblH;
         var valY;
-        if (fullWidth && h >= 100) {
+        var zl = Application.getApp().fieldConfig.zoomLevel;
+        if (fullWidth && zl >= 6) {
+            var offset = dc.getHeight() * 3 / 100;
+            valY = y + lblH - offset;
+        } else if (fullWidth) {
             valY = y + lblH + (remaining - valH) / 4;
         } else {
             valY = y + lblH + (remaining - valH) / 2;
