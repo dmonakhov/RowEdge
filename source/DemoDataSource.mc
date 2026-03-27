@@ -88,8 +88,9 @@ class DemoDataSource {
     function tick(detector) {
         elapsed++;
 
-        // Distance and GPS position
-        totalDistance += SPEED;
+        // Distance with speed variation (matches RowingView speed oscillation)
+        var spdVar = Math.sin(elapsed * 0.03) * 0.8;
+        totalDistance += SPEED + spdVar;
         var courseDist = totalDistance;
         // Wrap GPS position every 2000m (teleport to start)
         while (courseDist >= COURSE_LEN) {

@@ -336,7 +336,9 @@ class RowingView extends WatchUi.View {
             distance = demo.totalDistance;
             elapsedTime = demo.elapsed;
             heartRate = demo.hr;
-            speed = 4.545;  // constant for split display
+            // Speed varies slowly (simulates pace changes for sparkline)
+            var spdVar = Math.sin(demo.elapsed * 0.03) * 0.8;
+            speed = 4.545 + spdVar;  // ~3.7-5.3 m/s (split ~1:35 to 2:15)
 
             updateAvgSpeed();
             splitTime = avgSpeed > 0.3 ? 500.0 / avgSpeed : 0.0;
