@@ -871,22 +871,34 @@ class RowingView extends WatchUi.View {
         var n = dEnd - dStart + 1;
         if (n < 3) { n = det.strokeCurveLen; dStart = 0; dEnd = n - 1; }
 
-        // Find Y range from display portion
-        var yMin = 0;
+        // Asymmetric Y-scaling: 70% positive (drive), 30% negative (catch).
+        // Deep catches are clipped and shown with orange fill at bottom.
         var yMax = 0;
+        var yMinReal = 0;
         for (var i = dStart; i <= dEnd; i++) {
             var v = det.strokeCurve[i];
-            if (v < yMin) { yMin = v; }
+            if (v < yMinReal) { yMinReal = v; }
             if (v > yMax) { yMax = v; }
         }
         if (yMax < 10) { yMax = 10; }
+
+        // Negative budget = 30/70 of positive range
+        var yMin = -(yMax * 30 / 70);
         if (yMin > -10) { yMin = -10; }
+        var clipped = (yMinReal < yMin);
         var yRange = yMax - yMin;
 
-        // Zero line position
+        // Zero line at 70% from top
         var zeroY = gy + (yMax * gh / yRange).toNumber();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(gx, zeroY, gx + gw, zeroY);
+
+        // Bottom clip boundary line (if clipping)
+        var clipY = gy + gh;  // bottom of graph
+        if (clipped) {
+            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(gx, clipY - 1, gx + gw, clipY - 1);
+        }
 
         // Draw filled areas + curve line
         var xScale = gw.toFloat() / (n - 1);
@@ -896,19 +908,42 @@ class RowingView extends WatchUi.View {
         for (var i = 0; i < n; i++) {
             var v = det.strokeCurve[dStart + i];
             var px = gx + (i * xScale).toNumber();
-            var py = gy + ((yMax - v) * gh / yRange).toNumber();
 
+            // Clamp value to display range
+            var vDisp = v;
+            if (vDisp < yMin) { vDisp = yMin; }
+
+            var py = gy + ((yMax - vDisp) * gh / yRange).toNumber();
             if (py < gy) { py = gy; }
             if (py > gy + gh) { py = gy + gh; }
 
             if (v > 0) {
+                // Drive: green fill
                 dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
                 dc.fillRectangle(px, py, 2, zeroY - py);
+            } else if (v < yMin && clipped) {
+                // Clipped catch: orange fill, width proportional to depth.
+                // Last clipped sample uses minimal width to not cross the blue curve line.
+                var nextV = (i < n - 1) ? det.strokeCurve[dStart + i + 1] : 0;
+                var isLastClipped = (nextV >= yMin);
+                if (isLastClipped) {
+                    dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_ORANGE);
+                    dc.fillRectangle(px, zeroY, 1, clipY - zeroY);
+                } else {
+                    var ratio = v.toFloat() / yMinReal.toFloat();
+                    var maxW = xScale > 2 ? xScale.toNumber() : 2;
+                    var barW = 2 + ((maxW - 2) * ratio).toNumber();
+                    if (barW < 2) { barW = 2; }
+                    dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_ORANGE);
+                    dc.fillRectangle(px, zeroY, barW, clipY - zeroY);
+                }
             } else if (v < 0) {
+                // Normal catch: red fill
                 dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_RED);
                 dc.fillRectangle(px, zeroY, 2, py - zeroY);
             }
 
+            // Curve line (clamped to visible range)
             if (i > 0) {
                 dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
                 dc.drawLine(prevPx, prevPy, px, py);
@@ -929,8 +964,9 @@ class RowingView extends WatchUi.View {
                         (det.strokeForceRatio * 100).format("%.0f") + "%",
                         Graphics.TEXT_JUSTIFY_CENTER);
 
-            // dV: static position at 75% from top of graph area, right-aligned
-            dc.drawText(x + w - 6, gy + gh * 3 / 4, mFont,
+            // dV: just below zero line, nudged up 20% of font height for z4/z5
+            var mFontH = dc.getFontHeight(mFont);
+            dc.drawText(x + w - 6, zeroY + 2 - mFontH / 5, mFont,
                         det.strokeDeltaV.format("%.2f"),
                         Graphics.TEXT_JUSTIFY_RIGHT);
         }
