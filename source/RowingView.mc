@@ -28,6 +28,15 @@ class RowingView extends WatchUi.View {
     var dps = 0.0;
     var heartRate = 0;
 
+    // Sparkline history: one ring buffer per hero slot (hero + secondary hero)
+    const SPARK_SIZE = 60;
+    var sparkBuf0 = new [60];    // hero field history
+    var sparkBuf1 = new [60];    // secondary hero field history
+    var sparkIdx = 0;
+    var sparkCount = 0;
+    var sparkFid0 = -1;          // field ID currently in hero slot
+    var sparkFid1 = -1;          // field ID currently in secondary hero slot
+
     // Lap tracking
     var lapDistance = 0.0;
     var lapStrokes = 0;
@@ -295,6 +304,13 @@ class RowingView extends WatchUi.View {
                 session.setRadarData(app.radarMonitor, app.radarMonitor.bikeRadar);
             }
         }
+
+        // Record sparkline history
+        if (app.featureConfig.isEnabled(FeatureConfig.FEAT_SPARKLINES)) {
+            var tall = (System.getDeviceSettings().screenHeight > 400);
+            var visible = app.fieldConfig.getVisibleFieldsTall(tall);
+            recordSparkline(visible);
+        }
     }
 
     function applyDemoData() {
@@ -328,6 +344,13 @@ class RowingView extends WatchUi.View {
             lapDistance = distance - lapStartDist;
             lapStrokes = strokeCount - lapStartStrokes;
             if (lapStrokes > 0) { dps = lapDistance / lapStrokes; }
+
+            // Record sparkline in demo mode too
+            if (app.featureConfig.isEnabled(FeatureConfig.FEAT_SPARKLINES)) {
+                var tall = (System.getDeviceSettings().screenHeight > 400);
+                var visible = app.fieldConfig.getVisibleFieldsTall(tall);
+                recordSparkline(visible);
+            }
         }
     }
 
@@ -346,6 +369,8 @@ class RowingView extends WatchUi.View {
         for (var i = 0; i < SPEED_WINDOW; i++) { distHistory[i] = 0.0; }
         autoPaused = false; autoPauseCooldown = 0; autoPauseHoldoff = 0;
         demoDistance = 0.0; demoTime = 0;
+        sparkIdx = 0; sparkCount = 0; sparkFid0 = -1; sparkFid1 = -1;
+        clearSparkBuf(sparkBuf0); clearSparkBuf(sparkBuf1);
         Application.getApp().demoData.reset();
     }
 
@@ -583,6 +608,24 @@ class RowingView extends WatchUi.View {
                 var label = FieldConfig.getLabel(fid);
                 var value = getFieldValue(fid);
                 drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
+            }
+        }
+
+        // Sparklines for hero cells (full-width, height >= 100)
+        if (app.featureConfig.isEnabled(FeatureConfig.FEAT_SPARKLINES) && sparkCount > 3) {
+            // Hero (slot 0): always if full-width and tall enough
+            var c0w = cells[0][2];
+            var c0h = cells[0][3];
+            if (c0w > w * 3 / 4 && c0h >= 100 && visible[0] != FieldConfig.F_ACCEL_CURVE) {
+                drawSparkline(dc, cells[0][0], cells[0][1], c0w, c0h, visible[0], sparkBuf0);
+            }
+            // Secondary hero (slot 1): on tall screens
+            if (n >= 2 && h > 400) {
+                var c1w = cells[1][2];
+                var c1h = cells[1][3];
+                if (c1w > w * 3 / 4 && c1h >= 100 && visible[1] != FieldConfig.F_ACCEL_CURVE) {
+                    drawSparkline(dc, cells[1][0], cells[1][1], c1w, c1h, visible[1], sparkBuf1);
+                }
             }
         }
 
@@ -1041,6 +1084,153 @@ class RowingView extends WatchUi.View {
         }
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, valY, valFont, value, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    // Get numeric value for sparkline recording. Returns integer (0 = no data).
+    function getSparkValue(fid) {
+        switch (fid) {
+            case FieldConfig.F_SPLIT:
+                return (splitTime > 0 && splitTime < 600) ? splitTime.toNumber() : 0;
+            case FieldConfig.F_SPM:
+                return strokeRate > 0 ? strokeRate.toNumber() : 0;
+            case FieldConfig.F_HR:
+                return heartRate > 0 ? heartRate : 0;
+            case FieldConfig.F_SPEED:
+                return speed > 0 ? (speed * 100).toNumber() : 0;  // cm/s
+            case FieldConfig.F_DPS:
+                return dps > 0 ? (dps * 10).toNumber() : 0;  // decimeters
+            case FieldConfig.F_FORCE_RATIO:
+                var det_fr = Application.getApp().strokeDetector;
+                return det_fr.strokeForceRatio > 0 ?
+                       (det_fr.strokeForceRatio * 100).toNumber() : 0;
+            case FieldConfig.F_DELTA_V:
+                var det_dv = Application.getApp().strokeDetector;
+                return det_dv.strokeDeltaV > 0 ?
+                       (det_dv.strokeDeltaV * 100).toNumber() : 0;
+            case FieldConfig.F_DRIVE_RECOV:
+                var det_dr = Application.getApp().strokeDetector;
+                if (det_dr.strokeDriveTime > 0 && det_dr.strokeRecovTime > 0) {
+                    return (det_dr.strokeRecovTime / det_dr.strokeDriveTime * 10).toNumber();
+                }
+                return 0;
+            case FieldConfig.F_PEAK_ACCEL:
+                var det_pa = Application.getApp().strokeDetector;
+                return det_pa.strokePeak > 0 ? det_pa.strokePeak.toNumber() : 0;
+            default:
+                return 0;
+        }
+    }
+
+    // Get zone color for a sparkline bar based on field type and value
+    function getSparkColor(fid, val) {
+        if (val <= 0) { return Graphics.COLOR_LT_GRAY; }
+
+        if (fid == FieldConfig.F_SPLIT) {
+            // Split/500m: lower is better. val = seconds
+            // [>240=gray, >180=blue, >150=green, >120=orange, <=120=red]
+            if (val > 240) { return Graphics.COLOR_LT_GRAY; }
+            if (val > 180) { return Graphics.COLOR_BLUE; }
+            if (val > 150) { return Graphics.COLOR_DK_GREEN; }
+            if (val > 120) { return Graphics.COLOR_ORANGE; }
+            return Graphics.COLOR_RED;
+        } else if (fid == FieldConfig.F_SPM) {
+            // SPM: [<14=gray, <18=blue, <22=green, <26=orange, >=26=red]
+            if (val < 14) { return Graphics.COLOR_LT_GRAY; }
+            if (val < 18) { return Graphics.COLOR_BLUE; }
+            if (val < 22) { return Graphics.COLOR_DK_GREEN; }
+            if (val < 26) { return Graphics.COLOR_ORANGE; }
+            return Graphics.COLOR_RED;
+        } else if (fid == FieldConfig.F_HR) {
+            // HR zones: [<100=gray, <120=blue, <140=green, <160=orange, >=160=red]
+            if (val < 100) { return Graphics.COLOR_LT_GRAY; }
+            if (val < 120) { return Graphics.COLOR_BLUE; }
+            if (val < 140) { return Graphics.COLOR_DK_GREEN; }
+            if (val < 160) { return Graphics.COLOR_ORANGE; }
+            return Graphics.COLOR_RED;
+        } else if (fid == FieldConfig.F_DELTA_V) {
+            // DeltaV * 100: [<50=gray, <100=blue, <150=green, <200=orange, >=200=red]
+            if (val < 50) { return Graphics.COLOR_LT_GRAY; }
+            if (val < 100) { return Graphics.COLOR_BLUE; }
+            if (val < 150) { return Graphics.COLOR_DK_GREEN; }
+            if (val < 200) { return Graphics.COLOR_ORANGE; }
+            return Graphics.COLOR_RED;
+        } else if (fid == FieldConfig.F_FORCE_RATIO) {
+            // FR * 100: higher is better [<35=red, <45=orange, <55=green, <65=blue, >=65=gray]
+            if (val < 35) { return Graphics.COLOR_RED; }
+            if (val < 45) { return Graphics.COLOR_ORANGE; }
+            if (val < 55) { return Graphics.COLOR_DK_GREEN; }
+            if (val < 65) { return Graphics.COLOR_BLUE; }
+            return Graphics.COLOR_LT_GRAY;
+        }
+        // Default: single color
+        return Graphics.COLOR_BLUE;
+    }
+
+    // Record current values into sparkline buffers
+    function recordSparkline(visible) {
+        if (visible.size() < 1) { return; }
+
+        // Check if field IDs changed -- reset buffer on change
+        var fid0 = visible[0];
+        var fid1 = (visible.size() > 1) ? visible[1] : -1;
+        if (fid0 != sparkFid0) { clearSparkBuf(sparkBuf0); sparkFid0 = fid0; }
+        if (fid1 != sparkFid1) { clearSparkBuf(sparkBuf1); sparkFid1 = fid1; }
+
+        // Record values
+        sparkBuf0[sparkIdx] = getSparkValue(fid0);
+        if (fid1 >= 0) {
+            sparkBuf1[sparkIdx] = getSparkValue(fid1);
+        }
+        sparkIdx = (sparkIdx + 1) % SPARK_SIZE;
+        if (sparkCount < SPARK_SIZE) { sparkCount++; }
+    }
+
+    function clearSparkBuf(buf) {
+        for (var i = 0; i < SPARK_SIZE; i++) { buf[i] = 0; }
+        sparkCount = 0;
+        sparkIdx = 0;
+    }
+
+    // Draw sparkline bar chart at bottom of a cell
+    function drawSparkline(dc, x, y, w, h, fid, buf) {
+        if (sparkCount < 3) { return; }
+
+        // Sparkline area: bottom 30% of cell
+        var sparkH = h * 3 / 10;
+        var sparkY = y + h - sparkH;
+        var sparkW = w - 4;  // 2px margin each side
+        var sparkX = x + 2;
+
+        // Find min/max from buffer for Y scaling
+        var vMin = 999999;
+        var vMax = 0;
+        var count = sparkCount < SPARK_SIZE ? sparkCount : SPARK_SIZE;
+        for (var i = 0; i < count; i++) {
+            var v = buf[i];
+            if (v > 0) {
+                if (v < vMin) { vMin = v; }
+                if (v > vMax) { vMax = v; }
+            }
+        }
+        if (vMax <= vMin) { return; }
+        var vRange = vMax - vMin;
+
+        // Draw vertical bars, newest on right
+        var barStep = sparkW.toFloat() / count;
+        for (var i = 0; i < count; i++) {
+            // Read from oldest to newest
+            var bufIdx = (sparkIdx - count + i + SPARK_SIZE) % SPARK_SIZE;
+            var v = buf[bufIdx];
+            if (v <= 0) { continue; }
+
+            var barX = sparkX + (i * barStep).toNumber();
+            var barH = ((v - vMin) * (sparkH - 2) / vRange).toNumber();
+            if (barH < 1) { barH = 1; }
+            var barY = sparkY + sparkH - barH;
+
+            dc.setColor(getSparkColor(fid, v), Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(barX, barY, barX, sparkY + sparkH);
+        }
     }
 
     //
