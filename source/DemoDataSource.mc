@@ -33,34 +33,49 @@ class DemoDataSource {
     var patternIdx = 0;
     var samplePos = 0;
 
-    // Synthetic stroke patterns (25Hz, 78 samples = 3.12s at ~19.2 SPM)
-    // Generated from real on-water activity 2026-03-23-08-21-04.fit statistics:
-    //   SPM=19.2, lin_mag_max P50=438, drive~0.7s, recovery~2.4s
-    // Stroke shape: catch dip -> bell-shaped drive (peak~400mG, FR~0.6)
-    //               -> release -> recovery glide with body-mass oscillation
-    // EMA peak ~270 mG, crosses threshold=200 reliably.
-    // TODO: Replace with real 25Hz on-water recording once available.
-    var patternA = [
-        -99, -166, -238, -278, -260, -196, -123, -71, 192, 241,
-        291, 338, 378, 406, 419, 396, 377, 346, 305, 258,
-        211, 165, 124, 90, 62, 42, 50, 22, -5, -32,
-        -50, -48, -46, -45, -44, -43, -43, -44, -45, -46,
-        -48, -50, -53, -56, -60, -63, -67, -70, -74, -77,
-        -79, -82, -83, -84, -85, -84, -83, -82, -79, -77,
-        -74, -70, -67, -63, -60, -56, -53, -50, -48, -46,
-        -45, -44, -43, -43, -44, -45, -46, -48
-    ];
-
-    // Pattern B: same physics, +/-10% random variation
-    var patternB = [
-        -109, -175, -230, -293, -271, -180, -125, -66, 182, 247,
-        303, 353, 360, 445, 390, 368, 377, 356, 337, 238,
-        227, 161, 112, 88, 61, 47, 54, 24, -5, -39,
-        -54, -49, -39, -44, -52, -48, -41, -44, -46, -37,
-        -41, -51, -51, -53, -60, -66, -73, -78, -72, -76,
-        -76, -75, -91, -92, -88, -86, -72, -85, -86, -87,
-        -79, -74, -63, -68, -62, -48, -55, -55, -51, -45,
-        -54, -34, -49, -33, -50, -38, -52, -46
+    // Real on-water demo data: 520 samples (20.8s), 7 strokes
+    // 5 stroke types sorted by intensity: gentle -> steady -> strong -> power
+    //   -> steady -> light -> gentle (builds up and fades like a real piece)
+    // From 2026-03-27-09-00-34.fit, representative strokes per cluster:
+    //   gentle: peak=290, catch=-274 | light: peak=303, catch=-678
+    //   steady: peak=339, catch=-617 | strong: peak=376, catch=-728
+    //   power:  peak=433, catch=-751
+    var strokeData = [
+        -45, 5, -14, 28, -50, 16, -72, -13, -68, -28, -19, 0, -30, -27, -118,
+        -69, -35, -38, -6, -16, -28, -27, -3, -17, -18, 133, 159, 134, 103, 66,
+        72, 89, 29, 65, 76, 84, 82, 85, 84, 119, 48, -37, -78, -33, -71,
+        -116, -162, -218, -274, -222, 115, 104, 139, 107, 80, 79, 97, 22, 58, 90,
+        145, 176, 163, 156, 152, 152, 188, 229, 229, 229, 211, 244, 240, 290, 265,
+        -35, 25, -5, -24, 2, -20, -56, -48, -45, 0, 55, 14, -20, -28, -34,
+        -22, 31, -130, -61, -25, -41, -19, 21, -17, 55, 94, 109, 108, 91, 46,
+        103, 82, 59, 54, 81, 89, 91, 35, 8, -34, 6, -30, -14, -185, -300,
+        -307, -397, -617, -475, 53, 0, 24, 41, 28, 66, 117, 126, 140, 137, 150,
+        211, 202, 241, 279, 213, 267, 300, 312, 326, 339, 288, 285, 214, 249, 4,
+        35, 34, -13, 9, -102, -140, 63, 0, 29, -28, -57, -16, -13, -11, 40,
+        -65, -76, -25, -35, 28, -52, -29, 27, 4, -6, 55, 68, 83, 78, 115,
+        132, 110, 85, 70, 78, 24, 3, -4, -16, -53, -54, -146, -161, -256, -370,
+        -433, -524, -513, -728, -295, 72, 64, 66, 75, 124, 184, 213, 259, 269, 249,
+        283, 199, 170, 207, 228, 240, 301, 344, 313, 376, 362, 269, 68, 63, -109,
+        19, 17, -36, -90, -99, -7, 11, 61, 5, 0, 27, 27, 19, -62, -32,
+        -28, -46, -23, 4, -7, -12, -23, 11, -20, 118, 97, 125, 51, 60, 92,
+        30, 45, 41, 30, 68, 6, -14, -15, -44, -51, -192, -180, -327, -546, -501,
+        -751, -737, -385, -665, 207, 170, 239, 258, 279, 270, 286, 336, 42, 121, 304,
+        432, 433, 298, 289, 284, 289, 251, 264, 243, 118, 74, -35, 25, -5, -24,
+        2, -20, -56, -48, -45, 0, 55, 14, -20, -28, -34, -22, 31, -130, -61,
+        -25, -41, -19, 21, -17, 55, 94, 109, 108, 91, 46, 103, 82, 59, 54,
+        81, 89, 91, 35, 8, -34, 6, -30, -14, -185, -300, -307, -397, -617, -475,
+        53, 0, 24, 41, 28, 66, 117, 126, 140, 137, 150, 211, 202, 241, 279,
+        213, 267, 300, 312, 326, 339, 288, 285, 214, 249, 4, 86, 85, 64, 26,
+        -13, -41, 29, -9, -37, -13, -27, -47, -23, 6, -36, -50, -14, -24, -14,
+        -11, 7, 31, 22, 32, -86, 14, -30, 17, -29, -21, 8, -54, 120, 116,
+        89, 88, 102, 21, 25, 9, 1, -28, -123, -211, -280, -361, -544, -516, -461,
+        -462, -569, -524, -678, -581, -450, -522, -394, 142, 164, 205, 216, 192, 222, 231,
+        262, 256, 253, 303, 284, 294, 260, 260, 210, 209, -45, 5, -14, 28, -50,
+        16, -72, -13, -68, -28, -19, 0, -30, -27, -118, -69, -35, -38, -6, -16,
+        -28, -27, -3, -17, -18, 133, 159, 134, 103, 66, 72, 89, 29, 65, 76,
+        84, 82, 85, 84, 119, 48, -37, -78, -33, -71, -116, -162, -218, -274, -222,
+        115, 104, 139, 107, 80, 79, 97, 22, 58, 90, 145, 176, 163, 156, 152,
+        152, 188, 229, 229, 229, 211, 244, 240, 290, 265
     ];
 
     function initialize() {
@@ -96,27 +111,23 @@ class DemoDataSource {
         Application.getApp().radarMonitor.injectDemoTarget(elapsed);
     }
 
-    // Feed N samples from the current pattern into the detector.
-    // Applies +/-5% random jitter to avoid exact repetition.
+    // Feed N samples from continuous stroke data into the detector.
+    // Loops through 20s of real on-water data with +/-3% jitter.
     function feedImuSamples(detector, count) {
-        var pattern = (patternIdx % 2 == 0) ? patternA : patternB;
-        var pLen = pattern.size();
+        var pLen = strokeData.size();
 
         for (var i = 0; i < count; i++) {
-            var raw = pattern[samplePos % pLen];
+            var raw = strokeData[samplePos % pLen];
 
-            // Add +/-5% jitter
-            var jitter = (Math.rand() % 11) - 5;  // -5 to +5 percent
+            // Add +/-3% jitter to avoid exact repetition on loop
+            var jitter = (Math.rand() % 7) - 3;
             var sample = raw + (raw * jitter / 100);
 
-            // Feed as forward acceleration directly into the detector's
-            // processing pipeline (same path as real sensor data)
             detector.processDemoSample(sample.toNumber());
 
             samplePos++;
             if (samplePos >= pLen) {
                 samplePos = 0;
-                patternIdx++;
             }
         }
     }
