@@ -1023,13 +1023,22 @@ class RowingView extends WatchUi.View {
         var cx = x + w / 2;
         var lblH = dc.getFontHeight(lblFont);
         var valH = dc.getFontHeight(valFont);
+        var fullWidth = (w > dc.getWidth() * 3 / 4);
 
         // Label: top-left corner
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 3, y + 1, lblFont, label, Graphics.TEXT_JUSTIFY_LEFT);
 
-        // Value: centered in remaining space below label
-        var valY = y + lblH + (h - lblH - valH) / 2;
+        // Value: shift up on large cells to leave space for sparkline at bottom.
+        // Full-width cells (hero/secondary): value at 25% of remaining space.
+        // Grid cells: centered as before.
+        var remaining = h - lblH;
+        var valY;
+        if (fullWidth && h >= 100) {
+            valY = y + lblH + (remaining - valH) / 4;
+        } else {
+            valY = y + lblH + (remaining - valH) / 2;
+        }
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, valY, valFont, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
