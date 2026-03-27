@@ -90,7 +90,8 @@ class DemoDataSource {
 
         // Distance with speed variation (matches RowingView speed oscillation)
         var spdVar = Math.sin(elapsed * 0.025) * 1.5;
-        totalDistance += 3.5 + spdVar;
+        var spdNoise = ((Math.rand() % 41) - 20) / 100.0;
+        totalDistance += 3.5 + spdVar + spdNoise;
         var courseDist = totalDistance;
         // Wrap GPS position every 2000m (teleport to start)
         while (courseDist >= COURSE_LEN) {
@@ -100,10 +101,10 @@ class DemoDataSource {
         lat = START_LAT + frac * (FINISH_LAT - START_LAT);
         lon = START_LON + frac * (FINISH_LON - START_LON);
 
-        // Heart rate: wide oscillation across zones (100-160 bpm)
+        // Heart rate: wide oscillation across zones with noise (100-165 bpm)
         var sinVal = Math.sin(elapsed * 0.04);
-        var noise = (Math.rand() % 5) - 2;
-        hr = 130 + (30 * sinVal).toNumber() + noise;  // 100-160 bpm
+        var noise = (Math.rand() % 9) - 4;  // +/-4 bpm noise
+        hr = 130 + (30 * sinVal).toNumber() + noise;
 
         // Feed 25 IMU samples into StrokeDetector (1 second of data)
         feedImuSamples(detector, 25);

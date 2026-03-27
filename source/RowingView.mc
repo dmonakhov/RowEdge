@@ -29,9 +29,10 @@ class RowingView extends WatchUi.View {
     var heartRate = 0;
 
     // Sparkline history: one ring buffer per hero slot (hero + secondary hero)
-    const SPARK_SIZE = 60;
-    var sparkBuf0 = new [60];    // hero field history
-    var sparkBuf1 = new [60];    // secondary hero field history
+    // Buffer is 70 samples but we only draw as many as fit the cell width
+    const SPARK_SIZE = 70;
+    var sparkBuf0 = new [70];    // hero field history
+    var sparkBuf1 = new [70];    // secondary hero field history
     var sparkIdx = 0;
     var sparkCount = 0;
     var sparkFid0 = -1;          // field ID currently in hero slot
@@ -336,9 +337,10 @@ class RowingView extends WatchUi.View {
             distance = demo.totalDistance;
             elapsedTime = demo.elapsed;
             heartRate = demo.hr;
-            // Speed varies widely across split zones for sparkline demo
+            // Speed varies with noise across split zones for sparkline demo
             var spdVar = Math.sin(demo.elapsed * 0.025) * 1.5;
-            speed = 3.5 + spdVar;  // ~2.0-5.0 m/s (split ~1:40 to 4:10)
+            var spdNoise = ((Math.rand() % 41) - 20) / 100.0;  // +/-0.2 m/s
+            speed = 3.5 + spdVar + spdNoise;
 
             updateAvgSpeed();
             splitTime = avgSpeed > 0.3 ? 500.0 / avgSpeed : 0.0;
@@ -1194,21 +1196,29 @@ class RowingView extends WatchUi.View {
     }
 
     // Draw sparkline bar chart at bottom of a cell.
-    // Fixed 60 slots, each bar = w/60 wide. Empty slots are skipped.
+    // Bar width = max(w/60, 2). Draw only the newest N bars that fit the width.
     function drawSparkline(dc, x, y, w, h, fid, buf) {
         if (sparkCount < 3) { return; }
 
         // Sparkline area: bottom 30% of cell
         var sparkH = h * 3 / 10;
         var sparkY = y + h - sparkH;
-        var barW = w / SPARK_SIZE;
-        if (barW < 1) { barW = 1; }
 
-        // Find min/max from ALL 60 slots for Y scaling
+        // Bar width: target w/60 but at least 2px
+        var barW = w / 60;
+        if (barW < 2) { barW = 2; }
+
+        // How many bars actually fit the cell width
+        var nBars = w / barW;
+        if (nBars > SPARK_SIZE) { nBars = SPARK_SIZE; }
+        if (nBars > sparkCount) { nBars = sparkCount; }
+
+        // Find min/max from the bars we'll draw
         var vMin = 999999;
         var vMax = 0;
-        for (var i = 0; i < SPARK_SIZE; i++) {
-            var v = buf[i];
+        for (var i = 0; i < nBars; i++) {
+            var bufIdx = (sparkIdx - nBars + i + SPARK_SIZE) % SPARK_SIZE;
+            var v = buf[bufIdx];
             if (v > 0) {
                 if (v < vMin) { vMin = v; }
                 if (v > vMax) { vMax = v; }
@@ -1217,14 +1227,14 @@ class RowingView extends WatchUi.View {
         if (vMax <= vMin) { return; }
         var vRange = vMax - vMin;
 
-        // Draw 60 bars at fixed positions, oldest on left, newest on right
-        for (var i = 0; i < SPARK_SIZE; i++) {
-            // Map buffer position: slot 0 = oldest, slot 59 = newest
-            var bufIdx = (sparkIdx + i) % SPARK_SIZE;
+        // Draw newest N bars, right-aligned (newest = rightmost)
+        var startX = x + w - nBars * barW;
+        for (var i = 0; i < nBars; i++) {
+            var bufIdx = (sparkIdx - nBars + i + SPARK_SIZE) % SPARK_SIZE;
             var v = buf[bufIdx];
             if (v <= 0) { continue; }
 
-            var barX = x + i * barW;
+            var barX = startX + i * barW;
             var barH = ((v - vMin) * (sparkH - 2) / vRange).toNumber();
             if (barH < 1) { barH = 1; }
             var barY = sparkY + sparkH - barH;
