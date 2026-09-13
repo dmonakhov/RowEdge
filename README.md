@@ -53,7 +53,7 @@ features specific to the sport.
 
 ### UI and Configuration
 - **Wahoo-style zoom** -- swipe up/down or UP/DOWN buttons, z1-z7
-- **Multi-device** -- Edge 540, 840, 1040, 1050 with per-device fonts and layout
+- **Multi-device** -- Edge 540, 840, 1030 Plus, 1040, 1050 with per-device fonts and layout
 - **Touch support** -- swipe zoom, tap-to-configure, Picker for threshold, Menu2 for zoom
 - **Secondary hero** -- tall screens (1040/1050) show two full-width hero fields
 - **Configurable data fields** -- reorder, add, remove, Move to Top via menu
@@ -76,6 +76,7 @@ features specific to the sport.
 
 - Garmin Edge 540 / 540 Solar (246x322, button-only)
 - Garmin Edge 840 (246x322, buttons + touch)
+- Garmin Edge 1030 Plus (282x470, touch + 3 buttons)
 - Garmin Edge 1040 / 1040 Solar (282x470, touch + 3 buttons)
 - Garmin Edge 1050 (480x800, touch + 3 buttons)
 
