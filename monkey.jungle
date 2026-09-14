@@ -11,3 +11,10 @@ edge1030bontrager.resourcePath = resources-rectangle-282x470;resources/strings;r
 
 # Edge 1050: 480x800, high-DPI fonts
 edge1050.resourcePath = resources-rectangle-480x800;resources/strings;resources/settings
+
+# Edge 520 Plus / 820: 200x265, smaller fonts
+edge520plus.resourcePath = resources-rectangle-200x265;resources/strings;resources/settings
+edge820.resourcePath = resources-rectangle-200x265;resources/strings;resources/settings
+
+# Edge Explore: 240x400
+edgeexplore.resourcePath = resources-rectangle-240x400;resources/strings;resources/settings
