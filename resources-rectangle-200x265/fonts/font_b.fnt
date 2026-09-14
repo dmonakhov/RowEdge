@@ -1,0 +1,21 @@
+info face="CustomFont" size=-45 bold=1 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0
+common lineHeight=61 base=48 scaleW=512 scaleH=64 pages=1 packed=0 alphaChnl=1 redChnl=0 greenChnl=0 blueChnl=0
+page id=0 file="font_b_0.png"
+chars count=17
+char id=48   x=0     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=49   x=27     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=50   x=54     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=51   x=81     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=52   x=108     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=53   x=135     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=54   x=162     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=55   x=189     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=56   x=216     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=57   x=243     y=0     width=27    height=38     xoffset=-2     yoffset=14    xadvance=25    page=0  chnl=15
+char id=58   x=270     y=0     width=16    height=38     xoffset=-2     yoffset=21    xadvance=14    page=0  chnl=15
+char id=46   x=286     y=0     width=17    height=38     xoffset=-2     yoffset=39    xadvance=15    page=0  chnl=15
+char id=45   x=303     y=0     width=20    height=38     xoffset=-2     yoffset=30    xadvance=18    page=0  chnl=15
+char id=107   x=323     y=0     width=26    height=38     xoffset=-2     yoffset=12    xadvance=24    page=0  chnl=15
+char id=109   x=349     y=0     width=37    height=38     xoffset=-2     yoffset=22    xadvance=35    page=0  chnl=15
+char id=37   x=386     y=0     width=33    height=38     xoffset=-2     yoffset=14    xadvance=31    page=0  chnl=15
+char id=32   x=419     y=0     width=14    height=38     xoffset=-2     yoffset=46    xadvance=12    page=0  chnl=15

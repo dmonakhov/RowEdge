@@ -1,0 +1,8 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <fonts>
+        <font id="id_font_a" filename="fonts/font_a.fnt" filter="0123456789:.-km% " />
+        <font id="id_font_b" filename="fonts/font_b.fnt" filter="0123456789:.-km% " />
+        <font id="id_font_c" filename="fonts/font_c.fnt" filter="0123456789:.-km% " />
+        <font id="id_font_d" filename="fonts/font_d.fnt" filter="0123456789:.-km% " />
+    </fonts>
+</resources>
