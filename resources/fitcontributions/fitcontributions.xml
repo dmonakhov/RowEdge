@@ -1,0 +1,57 @@
+<resources>
+    <!-- Developer fields shown by Garmin Connect (charts + activity summary).
+         The id of each fitField must match the field id passed to
+         session.createField() in source/RowingSession.mc.
+         Fields that are not listed here are still written to the FIT file,
+         but Garmin Connect does not display them. -->
+    <fitContributions>
+        <!-- RECORD: stroke rate chart -->
+        <fitField id="0"
+            displayInChart="true"
+            sortOrder="0"
+            precision="0"
+            chartTitle="@Strings.FitStrokeRate"
+            dataLabel="@Strings.FitStrokeRate"
+            unitLabel="@Strings.FitUnitSpm"
+            fillColor="#FF8800" />
+
+        <!-- RECORD: distance per stroke chart -->
+        <fitField id="1"
+            displayInChart="true"
+            sortOrder="1"
+            precision="1"
+            chartTitle="@Strings.FitDps"
+            dataLabel="@Strings.FitDps"
+            unitLabel="@Strings.FitUnitM"
+            fillColor="#0088FF" />
+
+        <!-- SESSION: summary values -->
+        <fitField id="20"
+            displayInActivitySummary="true"
+            sortOrder="2"
+            precision="0"
+            dataLabel="@Strings.FitAvgStrokeRate"
+            unitLabel="@Strings.FitUnitSpm" />
+
+        <fitField id="21"
+            displayInActivitySummary="true"
+            sortOrder="3"
+            precision="0"
+            dataLabel="@Strings.FitMaxStrokeRate"
+            unitLabel="@Strings.FitUnitSpm" />
+
+        <fitField id="22"
+            displayInActivitySummary="true"
+            sortOrder="4"
+            precision="0"
+            dataLabel="@Strings.FitTotalStrokes"
+            unitLabel="@Strings.FitUnitStrokes" />
+
+        <fitField id="23"
+            displayInActivitySummary="true"
+            sortOrder="5"
+            precision="1"
+            dataLabel="@Strings.FitAvgDps"
+            unitLabel="@Strings.FitUnitM" />
+    </fitContributions>
+</resources>

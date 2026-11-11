@@ -4,7 +4,7 @@ project.manifest = manifest.xml
 base.resourcePath = resources
 
 # Edge 1040: 282x470, larger fonts
-edge1040.resourcePath = resources-rectangle-282x470;resources/strings;resources/settings
+edge1040.resourcePath = resources-rectangle-282x470;resources/strings;resources/settings;resources/fitcontributions
 
 # Edge 1050: 480x800, high-DPI fonts
-edge1050.resourcePath = resources-rectangle-480x800;resources/strings;resources/settings
+edge1050.resourcePath = resources-rectangle-480x800;resources/strings;resources/settings;resources/fitcontributions

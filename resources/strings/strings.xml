@@ -13,4 +13,14 @@
     <string id="PressStart">PRESS START</string>
     <string id="Saving">SAVING...</string>
     <string id="Radar">RADAR</string>
+    <!-- Garmin Connect labels for FIT developer fields -->
+    <string id="FitStrokeRate">Stroke Rate</string>
+    <string id="FitAvgStrokeRate">Avg Stroke Rate</string>
+    <string id="FitMaxStrokeRate">Max Stroke Rate</string>
+    <string id="FitTotalStrokes">Total Strokes</string>
+    <string id="FitDps">Distance per Stroke</string>
+    <string id="FitAvgDps">Avg Distance per Stroke</string>
+    <string id="FitUnitSpm">spm</string>
+    <string id="FitUnitM">m</string>
+    <string id="FitUnitStrokes">strokes</string>
 </strings>

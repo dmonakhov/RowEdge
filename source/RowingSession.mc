@@ -8,6 +8,14 @@ class RowingSession {
     var session = null;
     var strokeRateField = null;
     var dpsField = null;
+    // Session summary fields (shown in the Garmin Connect activity summary)
+    var avgStrokeRateField = null;
+    var maxStrokeRateField = null;
+    var totalStrokesField = null;
+    var avgDpsField = null;
+    var spmSum = 0;      // sum of non-zero 1 Hz stroke-rate samples
+    var spmSamples = 0;  // number of non-zero samples
+    var spmMax = 0;
     // Raw axes (1-second means)
     var rawXfield = null;
     var rawYfield = null;
@@ -52,10 +60,14 @@ class RowingSession {
                 :name => "Outdoor Row"
             });
 
+            // :nativeNum declares the equivalent native FIT field
+            // (record.cadence = 4), so consumers that honor it can treat the
+            // stroke rate as the native cadence / stroke rate.
             strokeRateField = session.createField(
                 "stroke_rate", 0,
                 FitContributor.DATA_TYPE_UINT8,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "spm"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "spm",
+                 :nativeNum => 4}
             );
 
             dpsField = session.createField(
@@ -66,6 +78,38 @@ class RowingSession {
 
             var app = Application.getApp();
             var hfreq = app.featureConfig.isEnabled(FeatureConfig.FEAT_HFREQ_ACCEL);
+
+            // Session summary fields (ids 20+). Native equivalents:
+            // session.avg_cadence = 18, max_cadence = 19, total_cycles = 10.
+            spmSum = 0;
+            spmSamples = 0;
+            spmMax = 0;
+            avgStrokeRateField = session.createField(
+                "avg_stroke_rate", 20,
+                FitContributor.DATA_TYPE_UINT8,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
+                 :nativeNum => 18}
+            );
+            // HF mode already uses 15 record fields (16 max): only the average fits
+            if (!hfreq) {
+                maxStrokeRateField = session.createField(
+                    "max_stroke_rate", 21,
+                    FitContributor.DATA_TYPE_UINT8,
+                    {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
+                     :nativeNum => 19}
+                );
+                totalStrokesField = session.createField(
+                    "total_strokes", 22,
+                    FitContributor.DATA_TYPE_UINT32,
+                    {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "strokes",
+                     :nativeNum => 10}
+                );
+                avgDpsField = session.createField(
+                    "avg_distance_per_stroke", 23,
+                    FitContributor.DATA_TYPE_FLOAT,
+                    {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "m"}
+                );
+            }
 
             if (hfreq) {
                 // High-frequency mode: 25 fwd_accel samples/sec packed as 13 SINT32
@@ -224,6 +268,29 @@ class RowingSession {
     function setStrokeRate(spm) {
         if (strokeRateField != null) {
             strokeRateField.setData(spm);
+        }
+        // Session average/max: only while the timer runs, ignoring samples
+        // without strokes (same convention as native cadence averages)
+        if (isRecording() && spm > 0 && spm < 255) {
+            spmSum += spm;
+            spmSamples++;
+            if (spm > spmMax) { spmMax = spm; }
+            if (avgStrokeRateField != null) {
+                avgStrokeRateField.setData((spmSum.toFloat() / spmSamples + 0.5).toNumber());
+            }
+            if (maxStrokeRateField != null) {
+                maxStrokeRateField.setData(spmMax);
+            }
+        }
+    }
+
+    // Session totals: stroke count and average distance per stroke
+    function setSessionTotals(strokes, distanceM) {
+        if (totalStrokesField != null) {
+            totalStrokesField.setData(strokes);
+        }
+        if (avgDpsField != null && strokes > 0 && distanceM != null) {
+            avgDpsField.setData(distanceM.toFloat() / strokes);
         }
     }
 

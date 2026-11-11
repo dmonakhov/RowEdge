@@ -289,6 +289,7 @@ class RowingView extends WatchUi.View {
             var stats = detector.getAccelStats();
             session.setStrokeRate(strokeRate.toNumber());
             session.setDPS(dps);
+            session.setSessionTotals(strokeCount, distance);
             session.setAccelStats(stats);
             lastLinMagMax = stats[4];
             lastLinMagMean = stats[5];
