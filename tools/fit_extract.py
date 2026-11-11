@@ -196,6 +196,25 @@ def extract(fit_path):
             fh.write(f"Distance per stroke ({len(valid_dps)} valid samples):\n")
             fh.write(f"  min={min(valid_dps):.1f} max={max(valid_dps):.1f} avg={sum(valid_dps)/len(valid_dps):.1f} m\n")
 
+        # Session stroke summary: developer fields written by RowEdge, with
+        # the native FIT fields as fallback (e.g. files from a Garmin watch)
+        def sess(dev_name, native_name):
+            v = session_info.get(dev_name)
+            return v if v is not None else session_info.get(native_name)
+
+        session_strokes = [
+            ('Avg stroke rate', sess('avg_stroke_rate', 'avg_cadence'), '{:.0f} spm'),
+            ('Max stroke rate', sess('max_stroke_rate', 'max_cadence'), '{:.0f} spm'),
+            ('Total strokes', sess('total_strokes', 'total_cycles'), '{:.0f}'),
+            ('Avg distance per stroke',
+             sess('avg_distance_per_stroke', 'avg_stroke_distance'), '{:.1f} m'),
+        ]
+        if any(v is not None for _, v, _ in session_strokes):
+            fh.write("\nSession stroke summary (from FIT session message):\n")
+            for label, v, fmt in session_strokes:
+                if v is not None:
+                    fh.write(f"  {label}: {fmt.format(v)}\n")
+
     print(f"  summary.txt")
 
     # Gnuplot scripts
