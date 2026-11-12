@@ -82,6 +82,10 @@ class StrokeDetector {
     var hfreqBuf = new [25];
     var hfreqCount = 0;
 
+    // Decimation of the raw sensor rate down to 25 Hz (see onSensorData)
+    var decSum = 0.0;
+    var decCount = 0;
+
     // Demo sample counter (for accurate stroke interval in demo mode)
     var demoSampleCount = 0;
     var demoLastStrokeSample = 0;
@@ -176,6 +180,8 @@ class StrokeDetector {
         emaValue = 0.0;
         prevEma = 0.0;
         wasPeak = false;
+        decSum = 0.0;
+        decCount = 0;
         calibrating = false;
         calibrated = false;
         gravX = 0.0;
@@ -213,6 +219,12 @@ class StrokeDetector {
             return;
         }
 
+        // Raw samples per 25 Hz sample. The listener asks for the maximum
+        // sample rate, which is 100 Hz on current Edge devices (4 raw samples
+        // per 25 Hz sample); with 25 samples per batch this is 1 (no change).
+        var dec = n / 25;
+        if (dec < 1) { dec = 1; }
+
         for (var i = 0; i < n; i++) {
             var rx = xData[i].toFloat();
             var ry = yData[i].toFloat();
@@ -235,16 +247,27 @@ class StrokeDetector {
             // Positive = drive (accelerating forward), negative = drag/recovery
             var fwdAccel = ly * fwdY + lz * fwdZ;
 
-            // Buffer for high-frequency FIT recording
-            if (hfreqCount < HFREQ_BUF_SIZE) {
-                hfreqBuf[hfreqCount] = fwdAccel.toNumber();
-                hfreqCount++;
-            }
+            // The curve buffer, the per-stroke metrics and the HF FIT log all
+            // assume 25 samples per second. Average each group of 'dec' raw
+            // samples into one 25 Hz sample before buffering.
+            decSum += fwdAccel;
+            decCount++;
+            if (decCount >= dec) {
+                var fwd25 = (decSum / decCount).toNumber();
+                decSum = 0.0;
+                decCount = 0;
 
-            // Ring buffer for stroke curve display
-            curveBuf[curveBufIdx] = fwdAccel.toNumber();
-            curveBufIdx = (curveBufIdx + 1) % CURVE_BUF_SIZE;
-            if (curveBufCount < CURVE_BUF_SIZE) { curveBufCount++; }
+                // Buffer for high-frequency FIT recording
+                if (hfreqCount < HFREQ_BUF_SIZE) {
+                    hfreqBuf[hfreqCount] = fwd25;
+                    hfreqCount++;
+                }
+
+                // Ring buffer for stroke curve display
+                curveBuf[curveBufIdx] = fwd25;
+                curveBufIdx = (curveBufIdx + 1) % CURVE_BUF_SIZE;
+                if (curveBufCount < CURVE_BUF_SIZE) { curveBufCount++; }
+            }
 
             // Track statistics for FIT recording
             rawXsum += rx;
