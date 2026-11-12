@@ -349,13 +349,17 @@ class RowingSession {
     }
 
     function setRowingMetrics(det, accelAvg, accelMax) {
-        if (rmForceRatio != null) { rmForceRatio.setData(det.strokeForceRatio); }
-        if (rmDeltaV != null) { rmDeltaV.setData(det.strokeDeltaV); }
-        if (rmDriveTime != null) { rmDriveTime.setData(det.strokeDriveTime); }
-        if (rmRecovTime != null) { rmRecovTime.setData(det.strokeRecovTime); }
-        if (rmCatchDur != null) { rmCatchDur.setData(det.strokeCatchDur); }
-        if (rmCatchSlope != null) { rmCatchSlope.setData(det.strokeCatchSlope); }
-        if (rmPeakAccel != null) { rmPeakAccel.setData(det.strokePeak.toNumber()); }
+        // Per-stroke values are only valid while strokes keep coming. With no
+        // stroke rate (drifting, paddling below the threshold) write 0 instead
+        // of repeating the last stroke for as long as the gap lasts.
+        var rowing = (det.strokeRate > 0);
+        if (rmForceRatio != null) { rmForceRatio.setData(rowing ? det.strokeForceRatio : 0.0); }
+        if (rmDeltaV != null) { rmDeltaV.setData(rowing ? det.strokeDeltaV : 0.0); }
+        if (rmDriveTime != null) { rmDriveTime.setData(rowing ? det.strokeDriveTime : 0.0); }
+        if (rmRecovTime != null) { rmRecovTime.setData(rowing ? det.strokeRecovTime : 0.0); }
+        if (rmCatchDur != null) { rmCatchDur.setData(rowing ? det.strokeCatchDur : 0.0); }
+        if (rmCatchSlope != null) { rmCatchSlope.setData(rowing ? det.strokeCatchSlope : 0.0); }
+        if (rmPeakAccel != null) { rmPeakAccel.setData(rowing ? det.strokePeak.toNumber() : 0); }
         if (rmAccelAvg != null) { rmAccelAvg.setData(accelAvg.toNumber()); }
         if (rmAccelMax != null) { rmAccelMax.setData(accelMax.toNumber()); }
     }
