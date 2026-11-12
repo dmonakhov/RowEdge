@@ -276,21 +276,26 @@ class StrokeDetector {
             var isPeak = (emaValue > catchThreshold);
 
             if (wasPeak && !isPeak) {
-                var interval = now - lastStrokeTime;
+                // Time of this sample, not of the callback: the sensor
+                // delivers one batch per second and 'now' is the same for
+                // every sample in it. Using 'now' made all stroke intervals
+                // whole seconds (2 s or 3 s at 22 spm instead of 2.7 s).
+                var ts = now - ((n - 1 - i) * 1000 / n);
+                var interval = ts - lastStrokeTime;
 
                 if (lastStrokeTime > 0 &&
                     interval >= MIN_STROKE_INTERVAL &&
                     interval <= MAX_STROKE_INTERVAL) {
                     strokeCount++;
                     snapshotStrokeCurve(interval);
-                    recordStrokeTime(now);
-                    lastStrokeTime = now;
+                    recordStrokeTime(ts);
+                    lastStrokeTime = ts;
                 } else if (lastStrokeTime == 0 ||
                            interval > MAX_STROKE_INTERVAL) {
                     strokeCount++;
                     snapshotStrokeCurve(interval);
-                    recordStrokeTime(now);
-                    lastStrokeTime = now;
+                    recordStrokeTime(ts);
+                    lastStrokeTime = ts;
                 }
             }
 
