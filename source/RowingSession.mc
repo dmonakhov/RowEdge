@@ -60,6 +60,15 @@ class RowingSession {
                 :name => "Outdoor Row"
             });
 
+            // Field ids must be unique across the whole app: Garmin Connect
+            // matches each id to its label in resources/fitcontributions.
+            //   0-1    stroke rate, distance per stroke (always)
+            //   2-10   rowing metrics log
+            //   20-23  session summary
+            //   30-39  accel log (1 Hz stats)
+            //   40-52  high-frequency accel (hf_0..hf_12)
+            //   60-64  radar raw log
+            //
             // :nativeNum declares the equivalent native FIT field
             // (record.cadence = 4), so consumers that honor it can treat the
             // stroke rate as the native cadence / stroke rate.
@@ -118,7 +127,7 @@ class RowingSession {
                 hfreqFields = new [13];
                 for (var k = 0; k < 13; k++) {
                     hfreqFields[k] = session.createField(
-                        "hf_" + k, 2 + k,
+                        "hf_" + k, 40 + k,
                         FitContributor.DATA_TYPE_SINT32,
                         {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG2"}
                     );
@@ -126,52 +135,52 @@ class RowingSession {
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ACCEL_LOG)) {
                 // Low-frequency mode: 1Hz summary stats (10 fields)
                 rawXfield = session.createField(
-                    "accel_raw_x", 2,
+                    "accel_raw_x", 30,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 rawYfield = session.createField(
-                    "accel_raw_y", 3,
+                    "accel_raw_y", 31,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 rawZfield = session.createField(
-                    "accel_raw_z", 4,
+                    "accel_raw_z", 32,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagMinField = session.createField(
-                    "lin_mag_min", 5,
+                    "lin_mag_min", 33,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagMaxField = session.createField(
-                    "lin_mag_max", 6,
+                    "lin_mag_max", 34,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagMeanField = session.createField(
-                    "lin_mag_mean", 7,
+                    "lin_mag_mean", 35,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagEmaField = session.createField(
-                    "lin_mag_ema", 8,
+                    "lin_mag_ema", 36,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 fwdAccelMeanField = session.createField(
-                    "fwd_accel_mean", 9,
+                    "fwd_accel_mean", 37,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 fwdAccelMinField = session.createField(
-                    "fwd_accel_min", 10,
+                    "fwd_accel_min", 38,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 fwdAccelMaxField = session.createField(
-                    "fwd_accel_max", 11,
+                    "fwd_accel_max", 39,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
@@ -209,19 +218,19 @@ class RowingSession {
                 // Radar raw log: 5 fields (ranges x8, speeds x8, count, closest, threat)
                 // 2 + 5 = 7 total fields, well under 16 limit
                 rlRanges = session.createField(
-                    "radar_ranges", 2, FitContributor.DATA_TYPE_UINT8,
+                    "radar_ranges", 60, FitContributor.DATA_TYPE_UINT8,
                     {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
                 rlSpeeds = session.createField(
-                    "radar_speeds", 3, FitContributor.DATA_TYPE_UINT8,
+                    "radar_speeds", 61, FitContributor.DATA_TYPE_UINT8,
                     {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m/s"});
                 rlCount = session.createField(
-                    "radar_count", 4, FitContributor.DATA_TYPE_UINT8,
+                    "radar_count", 62, FitContributor.DATA_TYPE_UINT8,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
                 rlClosest = session.createField(
-                    "radar_closest", 5, FitContributor.DATA_TYPE_UINT8,
+                    "radar_closest", 63, FitContributor.DATA_TYPE_UINT8,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
                 rlThreat = session.createField(
-                    "radar_threat", 6, FitContributor.DATA_TYPE_UINT8,
+                    "radar_threat", 64, FitContributor.DATA_TYPE_UINT8,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
             }
 

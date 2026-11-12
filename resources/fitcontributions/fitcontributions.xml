@@ -2,10 +2,11 @@
     <!-- Developer fields shown by Garmin Connect (charts + activity summary).
          The id of each fitField must match the field id passed to
          session.createField() in source/RowingSession.mc.
-         Fields that are not listed here are still written to the FIT file,
-         but Garmin Connect does not display them. -->
+         Fields that are not listed here (accel log, HF accel, radar log) are
+         still written to the FIT file, but Garmin Connect does not display
+         them. -->
     <fitContributions>
-        <!-- RECORD: stroke rate chart -->
+        <!-- RECORD: always written -->
         <fitField id="0"
             displayInChart="true"
             sortOrder="0"
@@ -15,7 +16,6 @@
             unitLabel="@Strings.FitUnitSpm"
             fillColor="#FF8800" />
 
-        <!-- RECORD: distance per stroke chart -->
         <fitField id="1"
             displayInChart="true"
             sortOrder="1"
@@ -25,31 +25,113 @@
             unitLabel="@Strings.FitUnitM"
             fillColor="#0088FF" />
 
+        <!-- RECORD: rowing metrics log (Features > Rowing Metrics Log) -->
+        <fitField id="2"
+            displayInChart="true"
+            sortOrder="2"
+            precision="2"
+            chartTitle="@Strings.FitForceRatio"
+            dataLabel="@Strings.FitForceRatio"
+            unitLabel="@Strings.FitUnitRatio"
+            fillColor="#00AA44" />
+
+        <fitField id="3"
+            displayInChart="true"
+            sortOrder="3"
+            precision="2"
+            chartTitle="@Strings.FitDeltaV"
+            dataLabel="@Strings.FitDeltaV"
+            unitLabel="@Strings.FitUnitMs"
+            fillColor="#AA00CC" />
+
+        <fitField id="4"
+            displayInChart="true"
+            sortOrder="4"
+            precision="2"
+            chartTitle="@Strings.FitDriveTime"
+            dataLabel="@Strings.FitDriveTime"
+            unitLabel="@Strings.FitUnitS"
+            fillColor="#DD2222" />
+
+        <fitField id="5"
+            displayInChart="true"
+            sortOrder="5"
+            precision="2"
+            chartTitle="@Strings.FitRecovTime"
+            dataLabel="@Strings.FitRecovTime"
+            unitLabel="@Strings.FitUnitS"
+            fillColor="#2266DD" />
+
+        <fitField id="6"
+            displayInChart="true"
+            sortOrder="6"
+            precision="2"
+            chartTitle="@Strings.FitCatchDur"
+            dataLabel="@Strings.FitCatchDur"
+            unitLabel="@Strings.FitUnitS"
+            fillColor="#CC6600" />
+
+        <fitField id="7"
+            displayInChart="true"
+            sortOrder="7"
+            precision="0"
+            chartTitle="@Strings.FitCatchSlope"
+            dataLabel="@Strings.FitCatchSlope"
+            unitLabel="@Strings.FitUnitMgS"
+            fillColor="#996633" />
+
+        <fitField id="8"
+            displayInChart="true"
+            sortOrder="8"
+            precision="0"
+            chartTitle="@Strings.FitPeakAccel"
+            dataLabel="@Strings.FitPeakAccel"
+            unitLabel="@Strings.FitUnitMg"
+            fillColor="#009999" />
+
+        <fitField id="9"
+            displayInChart="true"
+            sortOrder="9"
+            precision="0"
+            chartTitle="@Strings.FitAccelAvg"
+            dataLabel="@Strings.FitAccelAvg"
+            unitLabel="@Strings.FitUnitMg"
+            fillColor="#777777" />
+
+        <fitField id="10"
+            displayInChart="true"
+            sortOrder="10"
+            precision="0"
+            chartTitle="@Strings.FitAccelMax"
+            dataLabel="@Strings.FitAccelMax"
+            unitLabel="@Strings.FitUnitMg"
+            fillColor="#444444" />
+
         <!-- SESSION: summary values -->
         <fitField id="20"
             displayInActivitySummary="true"
-            sortOrder="2"
+            sortOrder="11"
             precision="0"
             dataLabel="@Strings.FitAvgStrokeRate"
             unitLabel="@Strings.FitUnitSpm" />
 
         <fitField id="21"
             displayInActivitySummary="true"
-            sortOrder="3"
+            sortOrder="12"
             precision="0"
             dataLabel="@Strings.FitMaxStrokeRate"
             unitLabel="@Strings.FitUnitSpm" />
 
         <fitField id="22"
             displayInActivitySummary="true"
-            sortOrder="4"
+            sortOrder="13"
             precision="0"
             dataLabel="@Strings.FitTotalStrokes"
             unitLabel="@Strings.FitUnitStrokes" />
 
         <fitField id="23"
             displayInActivitySummary="true"
-            sortOrder="5"
+            sortOrder="14"
             precision="1"
             dataLabel="@Strings.FitAvgDps"
             unitLabel="@Strings.FitUnitM" />
