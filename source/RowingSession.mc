@@ -42,6 +42,13 @@ class RowingSession {
     var rmPeakAccel = null;
     var rmAccelAvg = null;
     var rmAccelMax = null;
+    // Session averages of the nine rowing metrics (ids 70-78). The first
+    // seven are averaged once per stroke, the last two once per second.
+    var rmAvgFields = null;
+    var rmSums = null;
+    var rmStrokeN = 0;
+    var rmSecondN = 0;
+    var rmLastStrokeCount = -1;
     // Radar raw log: ranges and speeds for all 8 targets + count + threat
     var rlRanges = null;    // UINT8 array x8 (range in meters, 255=empty)
     var rlSpeeds = null;    // UINT8 array x8 (speed in m/s, 255=empty)
@@ -68,6 +75,7 @@ class RowingSession {
             //   30-39  accel log (1 Hz stats)
             //   40-52  high-frequency accel (hf_0..hf_12)
             //   60-64  radar raw log
+            //   70-78  session averages of the rowing metrics
             //
             // :nativeNum declares the equivalent native FIT field
             // (record.cadence = 4), so consumers that honor it can treat the
@@ -93,6 +101,7 @@ class RowingSession {
             spmSum = 0;
             spmSamples = 0;
             spmMax = 0;
+            rmAvgFields = null;
             avgStrokeRateField = session.createField(
                 "avg_stroke_rate", 20,
                 FitContributor.DATA_TYPE_UINT8,
@@ -214,6 +223,24 @@ class RowingSession {
                 rmAccelMax = session.createField(
                     "accel_max", 10, FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"});
+
+                // Session averages, same order as the record fields above.
+                // With these the session message holds 13 developer fields.
+                var avgNames = ["avg_force_ratio", "avg_delta_v", "avg_drive_time",
+                                "avg_recov_time", "avg_catch_dur", "avg_catch_slope",
+                                "avg_peak_accel", "avg_accel_avg", "avg_accel_max"];
+                var avgUnits = ["", "m/s", "s", "s", "s", "mG/s", "mG", "mG", "mG"];
+                rmAvgFields = new [9];
+                rmSums = new [9];
+                for (var k = 0; k < 9; k++) {
+                    rmAvgFields[k] = session.createField(
+                        avgNames[k], 70 + k, FitContributor.DATA_TYPE_FLOAT,
+                        {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => avgUnits[k]});
+                    rmSums[k] = 0.0;
+                }
+                rmStrokeN = 0;
+                rmSecondN = 0;
+                rmLastStrokeCount = -1;
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_RADAR_LOG)) {
                 // Radar raw log: 5 fields (ranges x8, speeds x8, count, closest, threat)
                 // 2 + 5 = 7 total fields, well under 16 limit
@@ -362,6 +389,30 @@ class RowingSession {
         if (rmPeakAccel != null) { rmPeakAccel.setData(rowing ? det.strokePeak.toNumber() : 0); }
         if (rmAccelAvg != null) { rmAccelAvg.setData(accelAvg.toNumber()); }
         if (rmAccelMax != null) { rmAccelMax.setData(accelMax.toNumber()); }
+
+        // Session averages, only while the timer runs
+        if (rmAvgFields != null && isRecording()) {
+            // Per-stroke metrics: add each new stroke once. The first stroke
+            // after a gap has no rate yet and an unreliable window: skip it.
+            if (rmLastStrokeCount >= 0 && det.strokeCount > rmLastStrokeCount && rowing) {
+                var v = [det.strokeForceRatio, det.strokeDeltaV, det.strokeDriveTime,
+                         det.strokeRecovTime, det.strokeCatchDur, det.strokeCatchSlope,
+                         det.strokePeak];
+                rmStrokeN++;
+                for (var k = 0; k < 7; k++) {
+                    rmSums[k] += v[k];
+                    rmAvgFields[k].setData(rmSums[k] / rmStrokeN);
+                }
+            }
+            rmLastStrokeCount = det.strokeCount;
+
+            // Per-second accelerometer statistics
+            rmSecondN++;
+            rmSums[7] += accelAvg;
+            rmSums[8] += accelMax;
+            rmAvgFields[7].setData(rmSums[7] / rmSecondN);
+            rmAvgFields[8].setData(rmSums[8] / rmSecondN);
+        }
     }
 
     // stats: [rawX, rawY, rawZ, linMagMin, linMagMax, linMagMean, ema,

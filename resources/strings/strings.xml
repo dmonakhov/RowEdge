@@ -29,6 +29,15 @@
     <string id="FitPeakAccel">Peak Acceleration</string>
     <string id="FitAccelAvg">Avg Acceleration</string>
     <string id="FitAccelMax">Max Acceleration</string>
+    <string id="FitAvgForceRatio">Avg Force Ratio</string>
+    <string id="FitAvgDeltaV">Avg Delta-V</string>
+    <string id="FitAvgDriveTime">Avg Drive Time</string>
+    <string id="FitAvgRecovTime">Avg Recovery Time</string>
+    <string id="FitAvgCatchDur">Avg Catch Duration</string>
+    <string id="FitAvgCatchSlope">Avg Catch Slope</string>
+    <string id="FitAvgPeakAccel">Avg Peak Acceleration</string>
+    <string id="FitAvgAccelAvg">Avg Acceleration (session)</string>
+    <string id="FitAvgAccelMax">Avg Max Acceleration</string>
     <string id="FitUnitRatio">avg/peak</string>
     <string id="FitUnitMs">m/s</string>
     <string id="FitUnitS">s</string>

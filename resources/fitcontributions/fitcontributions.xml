@@ -135,5 +135,70 @@
             precision="1"
             dataLabel="@Strings.FitAvgDps"
             unitLabel="@Strings.FitUnitM" />
+
+        <!-- SESSION: averages of the rowing metrics (per stroke; the last
+             two per second) -->
+        <fitField id="70"
+            displayInActivitySummary="true"
+            sortOrder="15"
+            precision="2"
+            dataLabel="@Strings.FitAvgForceRatio"
+            unitLabel="@Strings.FitUnitRatio" />
+
+        <fitField id="71"
+            displayInActivitySummary="true"
+            sortOrder="16"
+            precision="2"
+            dataLabel="@Strings.FitAvgDeltaV"
+            unitLabel="@Strings.FitUnitMs" />
+
+        <fitField id="72"
+            displayInActivitySummary="true"
+            sortOrder="17"
+            precision="2"
+            dataLabel="@Strings.FitAvgDriveTime"
+            unitLabel="@Strings.FitUnitS" />
+
+        <fitField id="73"
+            displayInActivitySummary="true"
+            sortOrder="18"
+            precision="2"
+            dataLabel="@Strings.FitAvgRecovTime"
+            unitLabel="@Strings.FitUnitS" />
+
+        <fitField id="74"
+            displayInActivitySummary="true"
+            sortOrder="19"
+            precision="2"
+            dataLabel="@Strings.FitAvgCatchDur"
+            unitLabel="@Strings.FitUnitS" />
+
+        <fitField id="75"
+            displayInActivitySummary="true"
+            sortOrder="20"
+            precision="0"
+            dataLabel="@Strings.FitAvgCatchSlope"
+            unitLabel="@Strings.FitUnitMgS" />
+
+        <fitField id="76"
+            displayInActivitySummary="true"
+            sortOrder="21"
+            precision="0"
+            dataLabel="@Strings.FitAvgPeakAccel"
+            unitLabel="@Strings.FitUnitMg" />
+
+        <fitField id="77"
+            displayInActivitySummary="true"
+            sortOrder="22"
+            precision="0"
+            dataLabel="@Strings.FitAvgAccelAvg"
+            unitLabel="@Strings.FitUnitMg" />
+
+        <fitField id="78"
+            displayInActivitySummary="true"
+            sortOrder="23"
+            precision="0"
+            dataLabel="@Strings.FitAvgAccelMax"
+            unitLabel="@Strings.FitUnitMg" />
     </fitContributions>
 </resources>

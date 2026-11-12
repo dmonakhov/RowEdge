@@ -16,6 +16,15 @@
     <string id="FitPeakAccel">Accelerazione di picco</string>
     <string id="FitAccelAvg">Accelerazione media</string>
     <string id="FitAccelMax">Accelerazione massima</string>
+    <string id="FitAvgForceRatio">Rapporto di forza medio</string>
+    <string id="FitAvgDeltaV">Delta-V medio</string>
+    <string id="FitAvgDriveTime">Tempo medio di passata</string>
+    <string id="FitAvgRecovTime">Tempo medio di ripresa</string>
+    <string id="FitAvgCatchDur">Durata media attacco</string>
+    <string id="FitAvgCatchSlope">Pendenza media attacco</string>
+    <string id="FitAvgPeakAccel">Accelerazione di picco media</string>
+    <string id="FitAvgAccelAvg">Accelerazione media (sessione)</string>
+    <string id="FitAvgAccelMax">Accelerazione massima media</string>
     <string id="FitUnitRatio">media/picco</string>
     <string id="FitUnitSpm">vpm</string>
     <string id="FitUnitStrokes">vogate</string>
