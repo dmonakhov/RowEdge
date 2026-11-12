@@ -61,6 +61,10 @@ class RowingSession {
 
     function start() {
         if (session == null) {
+            // Forget the fields of a previous activity: they belong to a
+            // session that is already saved, and the log mode may differ now.
+            clearFields();
+
             session = ActivityRecording.createSession({
                 :sport => Activity.SPORT_ROWING,
                 :subSport => Activity.SUB_SPORT_GENERIC,
@@ -101,7 +105,6 @@ class RowingSession {
             spmSum = 0;
             spmSamples = 0;
             spmMax = 0;
-            rmAvgFields = null;
             avgStrokeRateField = session.createField(
                 "avg_stroke_rate", 20,
                 FitContributor.DATA_TYPE_UINT8,
@@ -261,7 +264,59 @@ class RowingSession {
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
             }
 
+            // Give every field a value before recording starts. Without this
+            // the first record (and the session message, if no stroke is ever
+            // detected) carries FIT "invalid" values such as 255 or 32767.
+            initFields();
+
             session.start();
+        }
+    }
+
+    function clearFields() {
+        strokeRateField = null; dpsField = null;
+        avgStrokeRateField = null; maxStrokeRateField = null;
+        totalStrokesField = null; avgDpsField = null;
+        rawXfield = null; rawYfield = null; rawZfield = null;
+        linMagMinField = null; linMagMaxField = null;
+        linMagMeanField = null; linMagEmaField = null;
+        fwdAccelMeanField = null; fwdAccelMinField = null; fwdAccelMaxField = null;
+        hfreqFields = null;
+        rmForceRatio = null; rmDeltaV = null; rmDriveTime = null;
+        rmRecovTime = null; rmCatchDur = null; rmCatchSlope = null;
+        rmPeakAccel = null; rmAccelAvg = null; rmAccelMax = null;
+        rmAvgFields = null;
+        rlRanges = null; rlSpeeds = null; rlCount = null;
+        rlClosest = null; rlThreat = null;
+    }
+
+    function initFields() {
+        var ints = [strokeRateField, avgStrokeRateField, maxStrokeRateField,
+                    totalStrokesField, rawXfield, rawYfield, rawZfield,
+                    linMagMinField, linMagMaxField, linMagMeanField, linMagEmaField,
+                    fwdAccelMeanField, fwdAccelMinField, fwdAccelMaxField,
+                    rmPeakAccel, rmAccelAvg, rmAccelMax, rlCount, rlThreat];
+        for (var i = 0; i < ints.size(); i++) {
+            if (ints[i] != null) { ints[i].setData(0); }
+        }
+        var floats = [dpsField, avgDpsField, rmForceRatio, rmDeltaV, rmDriveTime,
+                      rmRecovTime, rmCatchDur, rmCatchSlope];
+        for (var i = 0; i < floats.size(); i++) {
+            if (floats[i] != null) { floats[i].setData(0.0); }
+        }
+        if (hfreqFields != null) {
+            for (var k = 0; k < 13; k++) { hfreqFields[k].setData(0); }
+        }
+        if (rmAvgFields != null) {
+            for (var k = 0; k < 9; k++) { rmAvgFields[k].setData(0.0); }
+        }
+        // Radar: same "no target" values that setRadarData() writes
+        if (rlRanges != null) {
+            var empty = new [8];
+            for (var i = 0; i < 8; i++) { empty[i] = 255; }
+            rlRanges.setData(empty);
+            rlSpeeds.setData(empty);
+            rlClosest.setData(254);
         }
     }
 
@@ -406,12 +461,15 @@ class RowingSession {
             }
             rmLastStrokeCount = det.strokeCount;
 
-            // Per-second accelerometer statistics
-            rmSecondN++;
-            rmSums[7] += accelAvg;
-            rmSums[8] += accelMax;
-            rmAvgFields[7].setData(rmSums[7] / rmSecondN);
-            rmAvgFields[8].setData(rmSums[8] / rmSecondN);
+            // Per-second accelerometer statistics. Seconds in which no
+            // sensor batch arrived repeat the previous values: do not count them.
+            if (det.statsFresh) {
+                rmSecondN++;
+                rmSums[7] += accelAvg;
+                rmSums[8] += accelMax;
+                rmAvgFields[7].setData(rmSums[7] / rmSecondN);
+                rmAvgFields[8].setData(rmSums[8] / rmSecondN);
+            }
         }
     }
 
