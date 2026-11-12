@@ -111,31 +111,32 @@ class RowingSession {
                 {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
                  :nativeNum => 18}
             );
-            // HF mode already uses 15 record fields (16 max): only the average fits
-            if (!hfreq) {
-                maxStrokeRateField = session.createField(
-                    "max_stroke_rate", 21,
-                    FitContributor.DATA_TYPE_UINT8,
-                    {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
-                     :nativeNum => 19}
-                );
-                totalStrokesField = session.createField(
-                    "total_strokes", 22,
-                    FitContributor.DATA_TYPE_UINT32,
-                    {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "strokes",
-                     :nativeNum => 10}
-                );
-                avgDpsField = session.createField(
-                    "avg_distance_per_stroke", 23,
-                    FitContributor.DATA_TYPE_FLOAT,
-                    {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "m"}
-                );
-            }
+            maxStrokeRateField = session.createField(
+                "max_stroke_rate", 21,
+                FitContributor.DATA_TYPE_UINT8,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
+                 :nativeNum => 19}
+            );
+            totalStrokesField = session.createField(
+                "total_strokes", 22,
+                FitContributor.DATA_TYPE_UINT32,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "strokes",
+                 :nativeNum => 10}
+            );
+            avgDpsField = session.createField(
+                "avg_distance_per_stroke", 23,
+                FitContributor.DATA_TYPE_FLOAT,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "m"}
+            );
+
+            // Field budget. Garmin documents 256 bytes per message, not a
+            // field count. An Edge 1050 accepts the largest set used here:
+            // 15 record fields (HF mode) and 13 session fields (rowing mode).
 
             if (hfreq) {
                 // High-frequency mode: 25 fwd_accel samples/sec packed as 13 SINT32
                 // Each SINT32 = 2x sint16: low 16 bits = sample[2k], high = sample[2k+1]
-                // Uses 13 fields + 2 base = 15 total (max 16 allowed)
+                // 13 fields + 2 base = 15 record fields, 60 bytes
                 hfreqFields = new [13];
                 for (var k = 0; k < 13; k++) {
                     hfreqFields[k] = session.createField(
@@ -198,7 +199,7 @@ class RowingSession {
                 );
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ROWING_LOG)) {
                 // Rowing metrics: 9 fields, per-stroke values written each second
-                // 2 base + 9 = 11 fields, 41 bytes
+                // 2 base + 9 = 11 record fields, 41 bytes
                 rmForceRatio = session.createField(
                     "force_ratio", 2, FitContributor.DATA_TYPE_FLOAT,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
@@ -246,7 +247,7 @@ class RowingSession {
                 rmLastStrokeCount = -1;
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_RADAR_LOG)) {
                 // Radar raw log: 5 fields (ranges x8, speeds x8, count, closest, threat)
-                // 2 + 5 = 7 total fields, well under 16 limit
+                // 2 base + 5 = 7 record fields, 24 bytes
                 rlRanges = session.createField(
                     "radar_ranges", 60, FitContributor.DATA_TYPE_UINT8,
                     {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
