@@ -557,6 +557,17 @@ class StrokeDetector {
     }
 
     function recordStrokeTime(ts) {
+        // A gap longer than the max stroke interval (pause, drifting) starts
+        // a new rate window. Otherwise the gap stays in the average until
+        // SPM_WINDOW new strokes have pushed it out, and the rate reads 0
+        // (or too low) for the first ~20 s after resuming.
+        if (strokeTimesCount > 0) {
+            var newestIdx = (strokeTimesIdx - 1 + strokeTimes.size()) % strokeTimes.size();
+            if (ts - strokeTimes[newestIdx] > MAX_STROKE_INTERVAL) {
+                strokeTimesCount = 0;
+                strokeTimesIdx = 0;
+            }
+        }
         strokeTimes[strokeTimesIdx] = ts;
         strokeTimesIdx = (strokeTimesIdx + 1) % strokeTimes.size();
         if (strokeTimesCount < strokeTimes.size()) {
