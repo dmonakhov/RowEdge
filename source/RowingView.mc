@@ -288,7 +288,15 @@ class RowingView extends WatchUi.View {
         if (session != null) {
             var stats = detector.getAccelStats();
             session.setStrokeRate(strokeRate.toNumber());
-            session.setDPS(dps);
+            // FIT gets the instantaneous distance per stroke (speed / rate),
+            // like the native cycle length of Garmin watches. The lap average
+            // in 'dps' stays on screen: as a chart it is a flat line with a
+            // huge spike while the first strokes are counted.
+            var instDps = 0.0;
+            if (strokeRate > 0 && avgSpeed > 0.3) {
+                instDps = avgSpeed * 60.0 / strokeRate;
+            }
+            session.setDPS(instDps);
             session.setSessionTotals(strokeCount, distance);
             session.setAccelStats(stats);
             lastLinMagMax = stats[4];
