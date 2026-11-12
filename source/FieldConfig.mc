@@ -28,7 +28,7 @@ class FieldConfig {
         F_CLOCK,      // Time of day
         F_DPS,        // Meters per stroke
         F_STROKES,    // Stroke count
-        F_SPEED,      // Speed m/s
+        F_SPEED,      // Speed, shown in km/h (mph with statute units)
         F_AVG_SPLIT,  // Average split
         F_CALORIES,   // Calories
         F_ACCEL_AVG,  // Avg accel (calibration)

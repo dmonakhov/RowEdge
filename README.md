@@ -92,7 +92,7 @@ features specific to the sport.
 | Time of Day       | System clock                    |
 | Meters/Stroke     | GPS + accel                     |
 | Stroke Count      | Forward acceleration            |
-| Speed             | GPS                             |
+| Speed             | GPS (km/h, or mph)              |
 | Avg Split         | Calculated                      |
 | Force Ratio       | Stroke curve (avg/peak, 0-100%) |
 | Delta-V           | Stroke impulse (m/s)            |

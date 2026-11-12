@@ -773,7 +773,10 @@ class RowingView extends WatchUi.View {
             case FieldConfig.F_STROKES:
                 return strokeCount.format("%d");
             case FieldConfig.F_SPEED:
-                return speed > 0 ? speed.format("%.1f") : "--";
+                // km/h, or mph when the device is set to statute units
+                if (speed <= 0) { return "--"; }
+                var statute = (System.getDeviceSettings().paceUnits == System.UNIT_STATUTE);
+                return (speed * (statute ? 2.23694 : 3.6)).format("%.1f");
             case FieldConfig.F_AVG_SPLIT:
                 if (elapsedTime > 0) {
                     var d = distance > 0.01 ? distance : 0.01;
