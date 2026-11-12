@@ -155,6 +155,29 @@ Press MENU to access settings:
 - **Zoom Level**: number of visible fields
 - **Features**: toggle auto-pause, demo mode, curve metrics, accel/HF/rowing log
 
+## Garmin Connect
+
+Activities are saved as rowing, with the app's own data in FIT developer fields.
+
+- **Charts**: stroke rate and distance per stroke; with Rowing Metrics Log on,
+  also force ratio, delta-V, drive and recovery time, catch duration and slope,
+  peak, average and max acceleration
+- **Activity summary**: average and max stroke rate, total strokes, average
+  distance per stroke, and the average of each rowing metric
+- **Labels**: English and Italian (`resources-ita`)
+- **Store version only**: Garmin Connect displays developer fields only for apps
+  installed from the Connect IQ Store. A sideloaded build writes the same data,
+  which other tools can read (for example `tools/fit_extract.py`)
+- **One log mode per activity**, in this order of priority: HF Accel, Accel
+  Logging, Rowing Metrics Log, Radar Raw Log. Stroke rate and distance per
+  stroke are always recorded
+- **Preview without an activity upload**: export the `.iq` package and open it
+  with a recorded FIT file in the SDK's Monkey Graph tool
+
+Stroke rate fields are also mapped to the native FIT cadence fields
+(`nativeNum`). Garmin Connect does not use this mapping to fill its native
+stroke rate, at least for sideloaded builds; tools that honor it do.
+
 ## TODO
 - [ ] Radar alert threshold settings (configurable distances)
 - [ ] Phone settings via settings.xml

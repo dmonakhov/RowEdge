@@ -13,7 +13,8 @@ TTF := $(HOME)/.Garmin/ConnectIQ/Fonts/RobotoCondensed-Bold.ttf
 
 SOURCES := $(wildcard source/*.mc)
 RESOURCES := $(wildcard resources/*/*.xml) $(wildcard resources/*/*.png) $(wildcard resources/*/*.fnt) \
-             $(wildcard resources-rectangle-*/*/*.xml) $(wildcard resources-rectangle-*/*/*.png) $(wildcard resources-rectangle-*/*/*.fnt)
+             $(wildcard resources-rectangle-*/*/*.xml) $(wildcard resources-rectangle-*/*/*.png) $(wildcard resources-rectangle-*/*/*.fnt) \
+             $(wildcard resources-ita/*/*.xml)
 
 # Mount point for Garmin Edge USB mass storage
 GARMIN_MNT ?= $(wildcard /media/$(USER)/GARMIN)

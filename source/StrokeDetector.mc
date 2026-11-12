@@ -71,6 +71,8 @@ class StrokeDetector {
     var linMagSum = 0.0;
     var emaSnapshot = 0.0;
     var sampleCount = 0;
+    var lastStats = null;     // last statistics computed from real samples
+    var statsFresh = false;   // false when getAccelStats() had no new samples
 
     // Forward acceleration stats (signed: positive=drive, negative=recovery)
     var fwdAccelSum = 0.0;
@@ -185,6 +187,8 @@ class StrokeDetector {
         fwdZ = 0.0;
         demoSampleCount = 0;
         demoLastStrokeSample = 0;
+        lastStats = null;
+        statsFresh = false;
     }
 
     // Returns true when calibration is complete
@@ -511,6 +515,14 @@ class StrokeDetector {
     // Returns [rawXmean, rawYmean, rawZmean, linMagMin, linMagMax, linMagMean,
     //          ema, fwdAccelMean, fwdAccelMin, fwdAccelMax]
     function getAccelStats() {
+        // The sensor batch and the 1 s UI timer are not synchronized: now and
+        // then a tick finds no new samples (the next one finds two batches).
+        // Repeat the previous statistics instead of reporting zeros.
+        if (sampleCount == 0 && lastStats != null) {
+            statsFresh = false;
+            return lastStats;
+        }
+        statsFresh = (sampleCount > 0);
         var xm = 0.0;
         var ym = 0.0;
         var zm = 0.0;
@@ -537,6 +549,7 @@ class StrokeDetector {
         fwdAccelMin = 0.0;
         fwdAccelMax = 0.0;
         sampleCount = 0;
+        if (statsFresh) { lastStats = stats; }
         return stats;
     }
 

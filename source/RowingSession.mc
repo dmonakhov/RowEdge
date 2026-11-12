@@ -8,6 +8,14 @@ class RowingSession {
     var session = null;
     var strokeRateField = null;
     var dpsField = null;
+    // Session summary fields (shown in the Garmin Connect activity summary)
+    var avgStrokeRateField = null;
+    var maxStrokeRateField = null;
+    var totalStrokesField = null;
+    var avgDpsField = null;
+    var spmSum = 0;      // sum of non-zero 1 Hz stroke-rate samples
+    var spmSamples = 0;  // number of non-zero samples
+    var spmMax = 0;
     // Raw axes (1-second means)
     var rawXfield = null;
     var rawYfield = null;
@@ -34,6 +42,13 @@ class RowingSession {
     var rmPeakAccel = null;
     var rmAccelAvg = null;
     var rmAccelMax = null;
+    // Session averages of the nine rowing metrics (ids 70-78). The first
+    // seven are averaged once per stroke, the last two once per second.
+    var rmAvgFields = null;
+    var rmSums = null;
+    var rmStrokeN = 0;
+    var rmSecondN = 0;
+    var rmLastStrokeCount = -1;
     // Radar raw log: ranges and speeds for all 8 targets + count + threat
     var rlRanges = null;    // UINT8 array x8 (range in meters, 255=empty)
     var rlSpeeds = null;    // UINT8 array x8 (speed in m/s, 255=empty)
@@ -46,16 +61,34 @@ class RowingSession {
 
     function start() {
         if (session == null) {
+            // Forget the fields of a previous activity: they belong to a
+            // session that is already saved, and the log mode may differ now.
+            clearFields();
+
             session = ActivityRecording.createSession({
                 :sport => Activity.SPORT_ROWING,
                 :subSport => Activity.SUB_SPORT_GENERIC,
                 :name => "Outdoor Row"
             });
 
+            // Field ids must be unique across the whole app: Garmin Connect
+            // matches each id to its label in resources/fitcontributions.
+            //   0-1    stroke rate, distance per stroke (always)
+            //   2-10   rowing metrics log
+            //   20-23  session summary
+            //   30-39  accel log (1 Hz stats)
+            //   40-52  high-frequency accel (hf_0..hf_12)
+            //   60-64  radar raw log
+            //   70-78  session averages of the rowing metrics
+            //
+            // :nativeNum declares the equivalent native FIT field
+            // (record.cadence = 4), so consumers that honor it can treat the
+            // stroke rate as the native cadence / stroke rate.
             strokeRateField = session.createField(
                 "stroke_rate", 0,
                 FitContributor.DATA_TYPE_UINT8,
-                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "spm"}
+                {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "spm",
+                 :nativeNum => 4}
             );
 
             dpsField = session.createField(
@@ -67,14 +100,47 @@ class RowingSession {
             var app = Application.getApp();
             var hfreq = app.featureConfig.isEnabled(FeatureConfig.FEAT_HFREQ_ACCEL);
 
+            // Session summary fields (ids 20+). Native equivalents:
+            // session.avg_cadence = 18, max_cadence = 19, total_cycles = 10.
+            spmSum = 0;
+            spmSamples = 0;
+            spmMax = 0;
+            avgStrokeRateField = session.createField(
+                "avg_stroke_rate", 20,
+                FitContributor.DATA_TYPE_UINT8,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
+                 :nativeNum => 18}
+            );
+            maxStrokeRateField = session.createField(
+                "max_stroke_rate", 21,
+                FitContributor.DATA_TYPE_UINT8,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "spm",
+                 :nativeNum => 19}
+            );
+            totalStrokesField = session.createField(
+                "total_strokes", 22,
+                FitContributor.DATA_TYPE_UINT32,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "strokes",
+                 :nativeNum => 10}
+            );
+            avgDpsField = session.createField(
+                "avg_distance_per_stroke", 23,
+                FitContributor.DATA_TYPE_FLOAT,
+                {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => "m"}
+            );
+
+            // Field budget. Garmin documents 256 bytes per message, not a
+            // field count. An Edge 1050 accepts the largest set used here:
+            // 15 record fields (HF mode) and 13 session fields (rowing mode).
+
             if (hfreq) {
                 // High-frequency mode: 25 fwd_accel samples/sec packed as 13 SINT32
                 // Each SINT32 = 2x sint16: low 16 bits = sample[2k], high = sample[2k+1]
-                // Uses 13 fields + 2 base = 15 total (max 16 allowed)
+                // 13 fields + 2 base = 15 record fields, 60 bytes
                 hfreqFields = new [13];
                 for (var k = 0; k < 13; k++) {
                     hfreqFields[k] = session.createField(
-                        "hf_" + k, 2 + k,
+                        "hf_" + k, 40 + k,
                         FitContributor.DATA_TYPE_SINT32,
                         {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG2"}
                     );
@@ -82,58 +148,58 @@ class RowingSession {
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ACCEL_LOG)) {
                 // Low-frequency mode: 1Hz summary stats (10 fields)
                 rawXfield = session.createField(
-                    "accel_raw_x", 2,
+                    "accel_raw_x", 30,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 rawYfield = session.createField(
-                    "accel_raw_y", 3,
+                    "accel_raw_y", 31,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 rawZfield = session.createField(
-                    "accel_raw_z", 4,
+                    "accel_raw_z", 32,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagMinField = session.createField(
-                    "lin_mag_min", 5,
+                    "lin_mag_min", 33,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagMaxField = session.createField(
-                    "lin_mag_max", 6,
+                    "lin_mag_max", 34,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagMeanField = session.createField(
-                    "lin_mag_mean", 7,
+                    "lin_mag_mean", 35,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 linMagEmaField = session.createField(
-                    "lin_mag_ema", 8,
+                    "lin_mag_ema", 36,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 fwdAccelMeanField = session.createField(
-                    "fwd_accel_mean", 9,
+                    "fwd_accel_mean", 37,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 fwdAccelMinField = session.createField(
-                    "fwd_accel_min", 10,
+                    "fwd_accel_min", 38,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
                 fwdAccelMaxField = session.createField(
-                    "fwd_accel_max", 11,
+                    "fwd_accel_max", 39,
                     FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"}
                 );
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_ROWING_LOG)) {
                 // Rowing metrics: 9 fields, per-stroke values written each second
-                // 2 base + 9 = 11 fields, 41 bytes
+                // 2 base + 9 = 11 record fields, 41 bytes
                 rmForceRatio = session.createField(
                     "force_ratio", 2, FitContributor.DATA_TYPE_FLOAT,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
@@ -161,27 +227,97 @@ class RowingSession {
                 rmAccelMax = session.createField(
                     "accel_max", 10, FitContributor.DATA_TYPE_SINT16,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "mG"});
+
+                // Session averages, same order as the record fields above.
+                // With these the session message holds 13 developer fields.
+                var avgNames = ["avg_force_ratio", "avg_delta_v", "avg_drive_time",
+                                "avg_recov_time", "avg_catch_dur", "avg_catch_slope",
+                                "avg_peak_accel", "avg_accel_avg", "avg_accel_max"];
+                var avgUnits = ["", "m/s", "s", "s", "s", "mG/s", "mG", "mG", "mG"];
+                rmAvgFields = new [9];
+                rmSums = new [9];
+                for (var k = 0; k < 9; k++) {
+                    rmAvgFields[k] = session.createField(
+                        avgNames[k], 70 + k, FitContributor.DATA_TYPE_FLOAT,
+                        {:mesgType => FitContributor.MESG_TYPE_SESSION, :units => avgUnits[k]});
+                    rmSums[k] = 0.0;
+                }
+                rmStrokeN = 0;
+                rmSecondN = 0;
+                rmLastStrokeCount = -1;
             } else if (app.featureConfig.isEnabled(FeatureConfig.FEAT_RADAR_LOG)) {
                 // Radar raw log: 5 fields (ranges x8, speeds x8, count, closest, threat)
-                // 2 + 5 = 7 total fields, well under 16 limit
+                // 2 base + 5 = 7 record fields, 24 bytes
                 rlRanges = session.createField(
-                    "radar_ranges", 2, FitContributor.DATA_TYPE_UINT8,
+                    "radar_ranges", 60, FitContributor.DATA_TYPE_UINT8,
                     {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
                 rlSpeeds = session.createField(
-                    "radar_speeds", 3, FitContributor.DATA_TYPE_UINT8,
+                    "radar_speeds", 61, FitContributor.DATA_TYPE_UINT8,
                     {:count => 8, :mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m/s"});
                 rlCount = session.createField(
-                    "radar_count", 4, FitContributor.DATA_TYPE_UINT8,
+                    "radar_count", 62, FitContributor.DATA_TYPE_UINT8,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
                 rlClosest = session.createField(
-                    "radar_closest", 5, FitContributor.DATA_TYPE_UINT8,
+                    "radar_closest", 63, FitContributor.DATA_TYPE_UINT8,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => "m"});
                 rlThreat = session.createField(
-                    "radar_threat", 6, FitContributor.DATA_TYPE_UINT8,
+                    "radar_threat", 64, FitContributor.DATA_TYPE_UINT8,
                     {:mesgType => FitContributor.MESG_TYPE_RECORD, :units => ""});
             }
 
+            // Give every field a value before recording starts. Without this
+            // the first record (and the session message, if no stroke is ever
+            // detected) carries FIT "invalid" values such as 255 or 32767.
+            initFields();
+
             session.start();
+        }
+    }
+
+    function clearFields() {
+        strokeRateField = null; dpsField = null;
+        avgStrokeRateField = null; maxStrokeRateField = null;
+        totalStrokesField = null; avgDpsField = null;
+        rawXfield = null; rawYfield = null; rawZfield = null;
+        linMagMinField = null; linMagMaxField = null;
+        linMagMeanField = null; linMagEmaField = null;
+        fwdAccelMeanField = null; fwdAccelMinField = null; fwdAccelMaxField = null;
+        hfreqFields = null;
+        rmForceRatio = null; rmDeltaV = null; rmDriveTime = null;
+        rmRecovTime = null; rmCatchDur = null; rmCatchSlope = null;
+        rmPeakAccel = null; rmAccelAvg = null; rmAccelMax = null;
+        rmAvgFields = null;
+        rlRanges = null; rlSpeeds = null; rlCount = null;
+        rlClosest = null; rlThreat = null;
+    }
+
+    function initFields() {
+        var ints = [strokeRateField, avgStrokeRateField, maxStrokeRateField,
+                    totalStrokesField, rawXfield, rawYfield, rawZfield,
+                    linMagMinField, linMagMaxField, linMagMeanField, linMagEmaField,
+                    fwdAccelMeanField, fwdAccelMinField, fwdAccelMaxField,
+                    rmPeakAccel, rmAccelAvg, rmAccelMax, rlCount, rlThreat];
+        for (var i = 0; i < ints.size(); i++) {
+            if (ints[i] != null) { ints[i].setData(0); }
+        }
+        var floats = [dpsField, avgDpsField, rmForceRatio, rmDeltaV, rmDriveTime,
+                      rmRecovTime, rmCatchDur, rmCatchSlope];
+        for (var i = 0; i < floats.size(); i++) {
+            if (floats[i] != null) { floats[i].setData(0.0); }
+        }
+        if (hfreqFields != null) {
+            for (var k = 0; k < 13; k++) { hfreqFields[k].setData(0); }
+        }
+        if (rmAvgFields != null) {
+            for (var k = 0; k < 9; k++) { rmAvgFields[k].setData(0.0); }
+        }
+        // Radar: same "no target" values that setRadarData() writes
+        if (rlRanges != null) {
+            var empty = new [8];
+            for (var i = 0; i < 8; i++) { empty[i] = 255; }
+            rlRanges.setData(empty);
+            rlSpeeds.setData(empty);
+            rlClosest.setData(254);
         }
     }
 
@@ -224,6 +360,29 @@ class RowingSession {
     function setStrokeRate(spm) {
         if (strokeRateField != null) {
             strokeRateField.setData(spm);
+        }
+        // Session average/max: only while the timer runs, ignoring samples
+        // without strokes (same convention as native cadence averages)
+        if (isRecording() && spm > 0 && spm < 255) {
+            spmSum += spm;
+            spmSamples++;
+            if (spm > spmMax) { spmMax = spm; }
+            if (avgStrokeRateField != null) {
+                avgStrokeRateField.setData((spmSum.toFloat() / spmSamples + 0.5).toNumber());
+            }
+            if (maxStrokeRateField != null) {
+                maxStrokeRateField.setData(spmMax);
+            }
+        }
+    }
+
+    // Session totals: stroke count and average distance per stroke
+    function setSessionTotals(strokes, distanceM) {
+        if (totalStrokesField != null) {
+            totalStrokesField.setData(strokes);
+        }
+        if (avgDpsField != null && strokes > 0 && distanceM != null) {
+            avgDpsField.setData(distanceM.toFloat() / strokes);
         }
     }
 
@@ -273,15 +432,46 @@ class RowingSession {
     }
 
     function setRowingMetrics(det, accelAvg, accelMax) {
-        if (rmForceRatio != null) { rmForceRatio.setData(det.strokeForceRatio); }
-        if (rmDeltaV != null) { rmDeltaV.setData(det.strokeDeltaV); }
-        if (rmDriveTime != null) { rmDriveTime.setData(det.strokeDriveTime); }
-        if (rmRecovTime != null) { rmRecovTime.setData(det.strokeRecovTime); }
-        if (rmCatchDur != null) { rmCatchDur.setData(det.strokeCatchDur); }
-        if (rmCatchSlope != null) { rmCatchSlope.setData(det.strokeCatchSlope); }
-        if (rmPeakAccel != null) { rmPeakAccel.setData(det.strokePeak.toNumber()); }
+        // Per-stroke values are only valid while strokes keep coming. With no
+        // stroke rate (drifting, paddling below the threshold) write 0 instead
+        // of repeating the last stroke for as long as the gap lasts.
+        var rowing = (det.strokeRate > 0);
+        if (rmForceRatio != null) { rmForceRatio.setData(rowing ? det.strokeForceRatio : 0.0); }
+        if (rmDeltaV != null) { rmDeltaV.setData(rowing ? det.strokeDeltaV : 0.0); }
+        if (rmDriveTime != null) { rmDriveTime.setData(rowing ? det.strokeDriveTime : 0.0); }
+        if (rmRecovTime != null) { rmRecovTime.setData(rowing ? det.strokeRecovTime : 0.0); }
+        if (rmCatchDur != null) { rmCatchDur.setData(rowing ? det.strokeCatchDur : 0.0); }
+        if (rmCatchSlope != null) { rmCatchSlope.setData(rowing ? det.strokeCatchSlope : 0.0); }
+        if (rmPeakAccel != null) { rmPeakAccel.setData(rowing ? det.strokePeak.toNumber() : 0); }
         if (rmAccelAvg != null) { rmAccelAvg.setData(accelAvg.toNumber()); }
         if (rmAccelMax != null) { rmAccelMax.setData(accelMax.toNumber()); }
+
+        // Session averages, only while the timer runs
+        if (rmAvgFields != null && isRecording()) {
+            // Per-stroke metrics: add each new stroke once. The first stroke
+            // after a gap has no rate yet and an unreliable window: skip it.
+            if (rmLastStrokeCount >= 0 && det.strokeCount > rmLastStrokeCount && rowing) {
+                var v = [det.strokeForceRatio, det.strokeDeltaV, det.strokeDriveTime,
+                         det.strokeRecovTime, det.strokeCatchDur, det.strokeCatchSlope,
+                         det.strokePeak];
+                rmStrokeN++;
+                for (var k = 0; k < 7; k++) {
+                    rmSums[k] += v[k];
+                    rmAvgFields[k].setData(rmSums[k] / rmStrokeN);
+                }
+            }
+            rmLastStrokeCount = det.strokeCount;
+
+            // Per-second accelerometer statistics. Seconds in which no
+            // sensor batch arrived repeat the previous values: do not count them.
+            if (det.statsFresh) {
+                rmSecondN++;
+                rmSums[7] += accelAvg;
+                rmSums[8] += accelMax;
+                rmAvgFields[7].setData(rmSums[7] / rmSecondN);
+                rmAvgFields[8].setData(rmSums[8] / rmSecondN);
+            }
+        }
     }
 
     // stats: [rawX, rawY, rawZ, linMagMin, linMagMax, linMagMean, ema,
