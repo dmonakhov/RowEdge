@@ -55,6 +55,7 @@ features specific to the sport.
 - **Wahoo-style zoom** -- swipe up/down or UP/DOWN buttons, z1-z7
 - **Multi-device** -- Edge 540, 840, 1040, 1050 with per-device fonts and layout
 - **Touch support** -- swipe zoom, tap-to-configure, Picker for threshold, Menu2 for zoom
+- **Dark mode** -- black background with light text on the data screens, toggle in Features
 - **Secondary hero** -- tall screens (1040/1050) show two full-width hero fields
 - **Configurable data fields** -- reorder, add, remove, Move to Top via menu
 - **Auto gravity calibration** -- 2-second static sampling with 300ms settle delay

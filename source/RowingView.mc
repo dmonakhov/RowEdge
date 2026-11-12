@@ -87,6 +87,15 @@ class RowingView extends WatchUi.View {
     // B=55px: hero z7, z3 rows (full-width, height 80-96px)
     // C=38px: grid z4-z5 (half-width, height 64-80px)
     // D=26px: grid z6-z7 (half-width, height 46-53px)
+    // Theme palette, set by applyTheme() (light by default)
+    var colBg = Graphics.COLOR_WHITE;      // screen background
+    var colFg = Graphics.COLOR_BLACK;      // values
+    var colLabel = Graphics.COLOR_DK_GRAY; // field labels, units
+    var colLine = Graphics.COLOR_LT_GRAY;  // dividers, zero line, empty sparkline bars
+    var colOk = Graphics.COLOR_DK_GREEN;   // positive hints
+    var colAlert = Graphics.COLOR_DK_RED;  // "Activity Paused" header
+    var colDrive = Graphics.COLOR_GREEN;   // accel curve drive fill
+
     var fontA = null;
     var fontB = null;
     var fontC = null;
@@ -383,7 +392,8 @@ class RowingView extends WatchUi.View {
     //
 
     function onUpdate(dc) {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+        applyTheme();
+        dc.setColor(colBg, colBg);
         dc.clear();
 
         var w = dc.getWidth();
@@ -399,6 +409,28 @@ class RowingView extends WatchUi.View {
             drawSummaryScreen(dc, w, h);
         } else {
             drawDataScreen(dc, w, h);
+        }
+    }
+
+    // Pick the color palette for the current theme (Features > Dark Mode).
+    // Called on every redraw, so toggling the setting applies immediately.
+    function applyTheme() {
+        if (Application.getApp().featureConfig.isEnabled(FeatureConfig.FEAT_DARK_MODE)) {
+            colBg = Graphics.COLOR_BLACK;
+            colFg = Graphics.COLOR_WHITE;
+            colLabel = Graphics.COLOR_LT_GRAY;
+            colLine = Graphics.COLOR_DK_GRAY;
+            colOk = Graphics.COLOR_GREEN;
+            colAlert = Graphics.COLOR_RED;
+            colDrive = Graphics.COLOR_DK_GREEN;
+        } else {
+            colBg = Graphics.COLOR_WHITE;
+            colFg = Graphics.COLOR_BLACK;
+            colLabel = Graphics.COLOR_DK_GRAY;
+            colLine = Graphics.COLOR_LT_GRAY;
+            colOk = Graphics.COLOR_DK_GREEN;
+            colAlert = Graphics.COLOR_DK_RED;
+            colDrive = Graphics.COLOR_GREEN;
         }
     }
 
@@ -438,10 +470,10 @@ class RowingView extends WatchUi.View {
     }
 
     function drawCalibratingScreen(dc, w, h) {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, h / 2 - 30, Graphics.FONT_MEDIUM, "Calibrating...",
                     Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, h / 2 + 10, Graphics.FONT_SMALL, "Hold still",
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
@@ -457,35 +489,35 @@ class RowingView extends WatchUi.View {
 	dc.drawRectangle(2, 2, w - 4, h - 4);
 	dc.drawRectangle(3, 3, w - 6, h - 6);
 
-	dc.setColor(Graphics.COLOR_DK_RED, Graphics.COLOR_TRANSPARENT);
+	dc.setColor(colAlert, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, 15, Graphics.FONT_MEDIUM, "Activity Paused",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
         // Data rows using fontC for values
         var y = rowH;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(8, y, Graphics.FONT_SMALL, "Distance", Graphics.TEXT_JUSTIFY_LEFT);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(valX, y, fontC, formatDistance(distance), Graphics.TEXT_JUSTIFY_RIGHT);
 
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(8, y, Graphics.FONT_SMALL, "Total Time", Graphics.TEXT_JUSTIFY_LEFT);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(valX, y, fontC, formatTime(elapsedTime), Graphics.TEXT_JUSTIFY_RIGHT);
 
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(8, y, Graphics.FONT_SMALL, "AVG Split", Graphics.TEXT_JUSTIFY_LEFT);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         var avgSplit = (elapsedTime > 0 && distance > 0) ?
                        formatSplit(500.0 * elapsedTime / distance) : "--:--";
         dc.drawText(valX, y, fontC, avgSplit, Graphics.TEXT_JUSTIFY_RIGHT);
 
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(8, y, Graphics.FONT_SMALL, "Time of Day", Graphics.TEXT_JUSTIFY_LEFT);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         var ci = System.getClockTime();
         dc.drawText(valX, y, fontC,
                     ci.hour.format("%d") + ":" + ci.min.format("%02d"),
@@ -493,7 +525,7 @@ class RowingView extends WatchUi.View {
 
         // Bottom hint
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colOk, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, y + 5, Graphics.FONT_MEDIUM,
                     "START: resume  BACK: stop",
                     Graphics.TEXT_JUSTIFY_CENTER);
@@ -503,7 +535,7 @@ class RowingView extends WatchUi.View {
         var rowH = h / 7;
 
         // Header
-        dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colOk, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, 4, Graphics.FONT_MEDIUM, "Activity Saved",
                     Graphics.TEXT_JUSTIFY_CENTER);
 
@@ -523,16 +555,16 @@ class RowingView extends WatchUi.View {
 
         // Bottom hint
         y += rowH;
-        dc.setColor(Graphics.COLOR_DK_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colOk, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w / 2, y, Graphics.FONT_SMALL,
                     "Press any button to dismiss",
                     Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function drawSummaryRow(dc, y, valX, label, value) {
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(8, y, Graphics.FONT_SMALL, label, Graphics.TEXT_JUSTIFY_LEFT);
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(valX, y, fontC, value, Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
@@ -551,7 +583,7 @@ class RowingView extends WatchUi.View {
         var cells = computeLayout(n, w, h);
 
         // Draw dividers
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLine, Graphics.COLOR_TRANSPARENT);
         for (var i = 0; i < cells.size(); i++) {
             var cx = cells[i][0];
             var cy = cells[i][1];
@@ -623,7 +655,16 @@ class RowingView extends WatchUi.View {
                     dc.setColor(cautColor, cautColor);
                     dc.fillRectangle(cx, cy, cw, ch);
                 }
+                // On a colored threat background keep dark text in both themes
+                var savedFg = colFg;
+                var savedLabel = colLabel;
+                if (rm.threatLevel >= 1) {
+                    colFg = Graphics.COLOR_BLACK;
+                    colLabel = Graphics.COLOR_DK_GRAY;
+                }
                 drawCell(dc, cx, cy, cw, ch, label, value, lf, vf);
+                colFg = savedFg;
+                colLabel = savedLabel;
             } else {
                 var label = FieldConfig.getLabel(fid);
                 var value = getFieldValue(fid);
@@ -893,11 +934,11 @@ class RowingView extends WatchUi.View {
         var lblH = dc.getFontHeight(lblFont);
 
         // Label top-left
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 3, y + 1, lblFont, "ACCEL", Graphics.TEXT_JUSTIFY_LEFT);
 
         if (det.strokeCurve == null || det.strokeCurveLen < 5) {
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x + w / 2, y + h / 2 - 10, Graphics.FONT_SMALL,
                         "--", Graphics.TEXT_JUSTIFY_CENTER);
             return;
@@ -935,7 +976,7 @@ class RowingView extends WatchUi.View {
 
         // Zero line at 70% from top
         var zeroY = gy + (yMax * gh / yRange).toNumber();
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLine, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(gx, zeroY, gx + gw, zeroY);
 
         // Bottom clip boundary line (if clipping)
@@ -964,7 +1005,7 @@ class RowingView extends WatchUi.View {
 
             if (v > 0) {
                 // Drive: green fill
-                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_GREEN);
+                dc.setColor(colDrive, colDrive);
                 dc.fillRectangle(px, py, 2, zeroY - py);
             } else if (v < yMin && clipped) {
                 // Clipped catch: orange fill, width proportional to depth.
@@ -1004,7 +1045,7 @@ class RowingView extends WatchUi.View {
             var mFont = (z <= 5) ? fontC : fontD;
 
             // FR: static position at 25% from top of graph area
-            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x + w / 2, gy + gh / 4, mFont,
                         (det.strokeForceRatio * 100).format("%.0f") + "%",
                         Graphics.TEXT_JUSTIFY_CENTER);
@@ -1023,12 +1064,12 @@ class RowingView extends WatchUi.View {
         var valH = dc.getFontHeight(valFont);
 
         // Label: top-left corner
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 3, y + 1, lblFont, "DISTANCE", Graphics.TEXT_JUSTIFY_LEFT);
 
         // Value positioning
         var valY = y + lblH + (h - lblH - valH) / 2;
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
 
         if (distance < 3000) {
             // Under 3km: "1234M"
@@ -1057,7 +1098,7 @@ class RowingView extends WatchUi.View {
             // Draw stacked "k" over "m" to the right of the number
             var suffixX = numX + numW / 2 + 2;
             var suffixY = valY + (valH - unitH * 2) / 2;
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
             dc.drawText(suffixX, suffixY, unitFont, "k", Graphics.TEXT_JUSTIFY_LEFT);
             dc.drawText(suffixX, suffixY + unitH, unitFont, "m", Graphics.TEXT_JUSTIFY_LEFT);
         }
@@ -1071,7 +1112,7 @@ class RowingView extends WatchUi.View {
         var fullWidth = (w > dc.getWidth() * 3 / 4);
 
         // Label: top-left corner
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colLabel, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 3, y + 1, lblFont, label, Graphics.TEXT_JUSTIFY_LEFT);
 
         var remaining = h - lblH;
@@ -1085,7 +1126,7 @@ class RowingView extends WatchUi.View {
         } else {
             valY = y + lblH + (remaining - valH) / 2;
         }
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(colFg, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, valY, valFont, value, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -1238,7 +1279,11 @@ class RowingView extends WatchUi.View {
             if (barH < 1) { barH = 1; }
             var barY = sparkY + sparkH - barH;
 
-            dc.setColor(getSparkColor(fid, v), Graphics.COLOR_TRANSPARENT);
+            // Gray (out-of-zone) bars follow the theme so the value drawn on
+            // top of them stays readable
+            var barColor = getSparkColor(fid, v);
+            if (barColor == Graphics.COLOR_LT_GRAY) { barColor = colLine; }
+            dc.setColor(barColor, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(barX, barY, barW, sparkH - (barY - sparkY));
         }
     }
