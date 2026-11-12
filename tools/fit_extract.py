@@ -8,6 +8,7 @@ Creates <basename>/ directory with:
     gps.tsv          - lat, lon, speed, distance, heart_rate
     accel.tsv        - raw x/y/z, lin_mag min/max/mean/ema
     strokes.tsv      - stroke_rate, distance_per_stroke
+    rowing.tsv       - per-stroke rowing metrics (rowing metrics log mode)
     summary.txt      - session summary
     plot_gps.gp      - gnuplot: GPS track + speed
     plot_accel.gp    - gnuplot: acceleration data
@@ -19,6 +20,14 @@ import sys
 import os
 import math
 import fitparse
+
+# Rowing metrics log: record fields, in the order the app writes them.
+# The session message holds their averages as avg_<name>.
+ROWING_FIELDS = [
+    ('force_ratio', ''), ('delta_v', 'm/s'), ('drive_time', 's'),
+    ('recov_time', 's'), ('catch_dur', 's'), ('catch_slope', 'mG/s'),
+    ('peak_accel', 'mG'), ('accel_avg', 'mG'), ('accel_max', 'mG'),
+]
 
 def semicircles_to_deg(sc):
     """Convert Garmin semicircles to degrees."""
@@ -60,6 +69,7 @@ def extract(fit_path):
     gps_rows = []
     accel_rows = []
     stroke_rows = []
+    rowing_rows = []
     hfreq_rows = []
     session_info = {}
 
@@ -126,6 +136,12 @@ def extract(fit_path):
         dps = d.get('distance_per_stroke')
         stroke_rows.append((elapsed, spm, dps))
 
+        # Rowing metrics log (per-stroke values repeated every second,
+        # 0 while no strokes are detected)
+        rm = [d.get(name) for name, _ in ROWING_FIELDS]
+        if any(v is not None for v in rm):
+            rowing_rows.append((elapsed, *rm))
+
     # Write TSV files
     def w(name, header, rows):
         path = os.path.join(outdir, name)
@@ -150,6 +166,11 @@ def extract(fit_path):
     w('strokes.tsv',
       ['elapsed_s', 'stroke_rate_spm', 'distance_per_stroke_m'],
       stroke_rows)
+    if rowing_rows:
+        w('rowing.tsv',
+          ['elapsed_s'] + [name + ('_' + unit if unit else '')
+                           for name, unit in ROWING_FIELDS],
+          rowing_rows)
 
     # Summary
     spath = os.path.join(outdir, 'summary.txt')
@@ -214,6 +235,15 @@ def extract(fit_path):
             for label, v, fmt in session_strokes:
                 if v is not None:
                     fh.write(f"  {label}: {fmt.format(v)}\n")
+
+        # Session averages of the rowing metrics (avg_<name> developer fields)
+        rowing_avgs = [(name, unit, session_info.get('avg_' + name))
+                       for name, unit in ROWING_FIELDS]
+        if any(v is not None for _, _, v in rowing_avgs):
+            fh.write("\nRowing metric averages (per stroke; accel per second):\n")
+            for name, unit, v in rowing_avgs:
+                if v is not None:
+                    fh.write(f"  avg_{name}: {v:.3f} {unit}".rstrip() + "\n")
 
     print(f"  summary.txt")
 
